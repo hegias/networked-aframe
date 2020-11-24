@@ -1,11 +1,13 @@
 const WebrtcAdapter = require("./naf-webrtc-adapter");
 const SocketioAdapter = require('./naf-socketio-adapter');
+const AwsChimeAdapter = require('./naf-aws-chime-adapter');
 
 class AdapterFactory {
   constructor() {
     this.adapters = {
       "socketio": SocketioAdapter,
       "webrtc": WebrtcAdapter,
+      "amazon-chime": AwsChimeAdapter,
     };
 
     this.IS_CONNECTED = AdapterFactory.IS_CONNECTED;
