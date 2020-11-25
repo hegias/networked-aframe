@@ -102,6 +102,7 @@ class AwsChimeAdapter extends NafInterface {
         console.log('1234: AwsChimeAdapter -> connect -> initializeMeetingSession done');
 
         await this.join();
+
         this.setupDataMessage();
         this.setupSubscribeToAttendeeIdPresenceHandler();
         this.connectSuccess(this.myAttendeeId);
@@ -157,17 +158,24 @@ class AwsChimeAdapter extends NafInterface {
 
   setupDataMessage() {
     console.log('1234: AwsChimeAdapter -> setupDataMessage');
-    // topic here must be known in advance, it is not the same as NAF's dataType
-    // which arrives with the message. So we hardcode the topic, like webRTC does with the channel
-    // and then extract dataType from NAF's message
-    this.audioVideo.realtimeSubscribeToReceiveDataMessage(this.topic, (dataMessage) => {
-      console.log('1234 on receivedDataMessage', dataMessage)
-      // NAF sends messages with type and data all in one
-      // we need to decode
-      const parsedPayload = JSON.parse(this.textDecoder.decode(dataMessage.data));
+    // declare an handler for each topic naf uses
+    this.audioVideo.realtimeSubscribeToReceiveDataMessage('u', (dataMessage) => {
+      const parsedPayload = JSON.parse(dataMessage.text());
       console.log('1234: on receivedDataMessage -> parsedPayload', parsedPayload);
-      this.messageListener(this.name, parsedPayload.type, parsedPayload.data)
-      this.dataMessageHandler(parsedPayload);
+      this.messageListener(this.name, 'u', parsedPayload)
+      this.dataMessageHandler(dataMessage);
+    });
+    this.audioVideo.realtimeSubscribeToReceiveDataMessage('um', (dataMessage) => {
+      const parsedPayload = JSON.parse(dataMessage.text());
+      console.log('1234: on receivedDataMessage -> parsedPayload', parsedPayload);
+      this.messageListener(this.name, 'um', parsedPayload)
+      this.dataMessageHandler(dataMessage);
+    });
+    this.audioVideo.realtimeSubscribeToReceiveDataMessage('r', (dataMessage) => {
+      const parsedPayload = JSON.parse(dataMessage.text());
+      console.log('1234: on receivedDataMessage -> parsedPayload', parsedPayload);
+      this.messageListener(this.name, 'r', parsedPayload)
+      this.dataMessageHandler(dataMessage);
     });
 
   }
@@ -178,15 +186,13 @@ class AwsChimeAdapter extends NafInterface {
       return;
     }
     new this.awsChime.AsyncScheduler().start(() => {
-      const payload = { type: dataType, data: data };
-      // hard coded topic
-      // NAF sends dataType and data, but we can't use dataType
-      this.audioVideo.realtimeSendDataMessage(this.topic, payload, 2000);
+      // forward naf dataType as topic of the message
+      this.audioVideo.realtimeSendDataMessage(dataType, data, 2000);
       // echo the message to the handler
       this.dataMessageHandler(new this.awsChime.DataMessage(
         Date.now(),
-        this.topic,
-        payload,
+        dataType,
+        data,
         this.meetingSession.configuration.credentials.attendeeId,
         this.meetingSession.configuration.credentials.externalUserId
       ));
@@ -202,7 +208,7 @@ dataMessageHandler(dataMessage) {
     }
     this.lastReceivedMessageTimestamp = dataMessage.timestampMs;
     if(!isSelf){
-      console.log('1234 RECEIVED: ',dataMessage);
+      console.log('1234 RECEIVED: ', dataMessage, JSON.parse(dataMessage.text()));
     }
   
   }
