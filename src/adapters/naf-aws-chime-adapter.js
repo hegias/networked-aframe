@@ -87,13 +87,15 @@ class AwsChimeAdapter extends NafInterface {
         this.joinToken = this.json.JoinInfo.Attendee.Attendee.JoinToken;
         console.log('1234: AwsChimeAdapter -> connect -> joinToken', this.joinToken);
         this.chimeMeetingId = this.json.JoinInfo.Meeting.Meeting.MeetingId;
-        console.log('1234: AwsChimeAdapter -> connect -> chimeMeetingId', this.chimeMeetingId);
+        this.externalMeetingId = this.json.JoinInfo.Meeting.Meeting.ExternalMeetingId;
+        console.log('1234: AwsChimeAdapter -> connect -> chimeMeetingId', this.chimeMeetingId, 'externalMeetingId', this.externalMeetingId);
         this.joinInfo = this.json.JoinInfo;
         console.log('1234: AwsChimeAdapter -> connect -> joinInfo', this.joinInfo);
         this.configuration = new this.awsChime.MeetingSessionConfiguration(this.joinInfo.Meeting, this.joinInfo.Attendee);
         console.log('1234: AwsChimeAdapter -> connect -> configuration', this.configuration);
         this.myAttendeeId = this.joinInfo.Attendee.Attendee.AttendeeId;
-        console.log('1234: AwsChimeAdapter -> connect -> this.myAttendeeId', this.myAttendeeId);
+        this.externalUserId = this.joinInfo.Attendee.Attendee.ExternalUserId;
+        console.log('1234: AwsChimeAdapter -> connect -> this.myAttendeeId', this.myAttendeeId, 'externalUserId', this.externalUserId);
         
         // Initialize Meeting - Device and AudioVideo stuff
         this.deviceController = new this.awsChime.DefaultDeviceController(this.logger);
@@ -102,11 +104,11 @@ class AwsChimeAdapter extends NafInterface {
         console.log('1234: AwsChimeAdapter -> connect -> initializeMeetingSession done');
 
         await this.join();
-
+        this.participantList = await this.getParticipantList();
+        this.isMaster = this.participantList.IsMaster;
         this.setupDataMessage();
         this.setupSubscribeToAttendeeIdPresenceHandler();
         this.connectSuccess(this.myAttendeeId);
-
       } catch (error) {
         alert(error.message);
         return;
@@ -155,7 +157,21 @@ class AwsChimeAdapter extends NafInterface {
     const audioMix = document.getElementById('meeting-audio');
     await this.audioVideo.bindAudioElement(audioMix);
   }
-
+  async getParticipantList() {
+    try {
+      const response = await fetch(
+        `${this.wsUrl}onconnect?externalMeetingId=${encodeURIComponent(this.externalMeetingId)}&attendeeid=${encodeURIComponent(this.myAttendeeId)}&externalUserId=${encodeURIComponent(this.externalUserId)}`,
+        {
+          method: 'POST',
+        }
+      );
+      const res_json = await response.json();
+      return res_json;
+    } catch (error) {
+        alert(error.message);
+      return;
+    }  
+  }
   setupDataMessage() {
     console.log('1234: AwsChimeAdapter -> setupDataMessage');
     // declare an handler for each topic naf uses
@@ -270,6 +286,7 @@ dataMessageHandler(dataMessage) {
   leave() {
     this.audioVideo.stop();
     this.roster = {};
+    this.participantList = {}; 
     this.closedListener(this.myAttendeeId);
   }
   getServerTime() {  return new Date().getTime() }
