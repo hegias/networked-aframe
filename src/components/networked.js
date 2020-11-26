@@ -45,7 +45,16 @@ AFRAME.registerSystem("networked", {
 
       for (let i = 0, l = this.components.length; i < l; i++) {
         const c = this.components[i];
-        if (!c.isMine()) continue;
+        // HACK
+        // if (!c.isMine()) continue;
+        if (!c.isMine()) {
+          if (NAF.clientId && c.el && c.el.components && this.master === NAF.clientId && c.el.getAttribute('isBeingUsed') === 'false') {
+            console.log('AFRAME was not mine. taking ownership of c', c, 'beingUsed is', c.el.getAttribute('isBeingUsed'))
+                      NAF.utils.takeOwnership(c.el)
+                  }
+          continue;
+        }
+        // HACK END
         if (!c.el.parentElement) {
           NAF.log.error("entity registered with system despite being removed");
           //TODO: Find out why tick is still being called
@@ -83,6 +92,8 @@ AFRAME.registerComponent('networked', {
   },
 
   init: function() {
+    // HACK add ready state
+		this.ready = false;
     this.OWNERSHIP_GAINED = 'ownership-gained';
     this.OWNERSHIP_CHANGED = 'ownership-changed';
     this.OWNERSHIP_LOST = 'ownership-lost';
@@ -143,6 +154,8 @@ AFRAME.registerComponent('networked', {
     document.body.dispatchEvent(this.entityCreatedEvent());
     this.el.dispatchEvent(new CustomEvent('instantiated', {detail: {el: this.el}}));
     this.el.sceneEl.systems.networked.register(this);
+    // HACK add ready state
+		this.ready = true;
   },
 
   attachTemplateToLocal: function() {
@@ -411,6 +424,9 @@ AFRAME.registerComponent('networked', {
     }
 
     if (this.data.owner !== entityData.owner) {
+      //HACK - useful?
+      console.log('AFRAME NETWORKED networkupdate. i am', NAF.clientId, 'from', this.data.owner, ' to ', entityData.owner, this.el.getAttribute('name'));
+      //END HACK 
       var wasMine = this.isMine();
       this.lastOwnerTime = entityData.lastOwnerTime;
 

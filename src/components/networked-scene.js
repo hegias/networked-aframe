@@ -59,6 +59,12 @@ AFRAME.registerComponent('networked-scene', {
   remove: function() {
     NAF.log.write('networked-scene disconnected');
     this.el.removeEventListener('connect', this.connect);
-    NAF.connection.disconnect();
+    // HACK
+		if (NAF.connection.isConnected() === true) {
+      console.log('AFRAME DISCONNECTING from NAF')
+      NAF.connection.disconnect();
+    } 
+    // END HACK
+    // NAF.connection.disconnect();
   }
 });

@@ -159,13 +159,16 @@ class NetworkEntities {
     var entityList = [];
     for (var id in this.entities) {
       var entityCreator = NAF.utils.getCreator(this.entities[id]);
+      // HACK
+			var entityOwner = this.entities[id].components.networked.data.owner;
+			// END HACK
       if (entityCreator === clientId) {
         let persists;
         const component = this.entities[id].getAttribute('networked');
         if (component && component.persistent) {
           persists = NAF.utils.takeOwnership(this.entities[id]);
         }
-        if (!persists) {
+        if (!persists /* HACK */ && entityOwner !== NAF.clientId /* END HACK */) {
           var entity = this.removeEntity(id);
           entityList.push(entity);
         }
