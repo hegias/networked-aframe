@@ -14,11 +14,20 @@
     <script src="/js/spawn-in-circle.component.js"></script>
   </head>
   <body>
-    <a-scene networked-scene="
-      room: dev;
-      debug: true;
-      adapter: socketio;
-    ">
+    <audio id="meeting-audio" style="display:none"></audio>
+    <a-scene id="scene" networked-scene="
+    debug: true;
+    adapter: amazon-chime;
+    connectOnLoad: false;
+    app: hegias;
+    room: testfinalsupergreatroom1;
+    serverURL: https://0nid2zb4sj.execute-api.eu-central-1.amazonaws.com/Prod/;
+  ">
+<!--   <a-scene id="scene" networked-scene="
+  room: dev;
+  debug: true;
+  adapter: webrtc;
+"> -->
       <a-assets>
 
         <img id="grid" src="https://img.gs/bbdkhfbzkk/stretch/https://i.imgur.com/25P1geh.png" crossorigin="anonymous">
