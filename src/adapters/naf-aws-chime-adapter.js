@@ -55,6 +55,7 @@ class AwsChimeAdapter extends NafInterface {
   };
 
   async connect() {
+    this.encoder = new TextEncoder();
     this.awsChime = awsChime;
     this.roster = {};
     this.name = 'remoteIDMax'+Math.floor(Math.random()*1000);
@@ -196,6 +197,27 @@ class AwsChimeAdapter extends NafInterface {
 
   }
 
+  checkMessageSize(data){
+    this.encodedMessage = this.encoder.encode(JSON.stringify(data))
+    if (this.encodedMessage.length > 2000) {
+      return false;
+    }
+    return true;
+  }
+
+  splitMessage(dataType, message) {
+    this.messages = [];
+
+    if (dataType === 'um') {
+      message.d?.forEach((el)=> {
+        this.finalMessage = { d : [] };
+        this.finalMessage.d.push(el);
+        this.messages.push(this.finalMessage);
+      })
+    }
+    console.log('this.messages', this.messages)
+  }
+
   sendData(dataType, data) { 
     // safety check in case audioVideo was not ready yet
     if(!this.audioVideo) {
@@ -203,6 +225,7 @@ class AwsChimeAdapter extends NafInterface {
     }
     new this.awsChime.AsyncScheduler().start(() => {
       // forward naf dataType as topic of the message
+      console.log('1234  - AwsChimeAdapter  - newthis.awsChime.AsyncScheduler  - data', data);
       this.audioVideo.realtimeSendDataMessage(dataType, data, 2000);
       // echo the message to the handler
       this.dataMessageHandler(new this.awsChime.DataMessage(
@@ -226,6 +249,7 @@ dataMessageHandler(dataMessage) {
     if(!isSelf){
       console.log('1234 RECEIVED: ', dataMessage, JSON.parse(dataMessage.text()));
     }
+    console.log('1234 RECEIVED: ', dataMessage);
   
   }
 }
