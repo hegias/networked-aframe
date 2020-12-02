@@ -199,6 +199,7 @@ class AwsChimeAdapter extends NafInterface {
 
   checkMessageSize(data){
     this.encodedMessage = this.encoder.encode(JSON.stringify(data))
+    console.log('1234  - checkMessageSize ', this.encodedMessage.length, data);
     if (this.encodedMessage.length > 2000) {
       return false;
     }
@@ -207,15 +208,22 @@ class AwsChimeAdapter extends NafInterface {
 
   splitMessage(dataType, message) {
     this.messages = [];
-
+    // we need to split
     if (dataType === 'um') {
-      message.d?.forEach((el)=> {
-        this.finalMessage = { d : [] };
-        this.finalMessage.d.push(el);
-        this.messages.push(this.finalMessage);
-      })
+      // um messages are in a d : [] structure
+      if(message.d) {
+        message.d.forEach((el)=> {
+          this.finalMessage = { d : [] };
+          this.finalMessage.d.push(el);
+          this.messages.push(this.finalMessage);
+        })
+      }
+    } else if (dataType === 'u'){
+      // TODO split by single component
     }
-    console.log('this.messages', this.messages)
+
+    console.log('SPLITTED this.messages', this.messages)
+    return this.messages;
   }
 
   sendData(dataType, data) { 
@@ -225,16 +233,31 @@ class AwsChimeAdapter extends NafInterface {
     }
     new this.awsChime.AsyncScheduler().start(() => {
       // forward naf dataType as topic of the message
-      console.log('1234  - AwsChimeAdapter  - newthis.awsChime.AsyncScheduler  - data', data);
-      this.audioVideo.realtimeSendDataMessage(dataType, data, 2000);
-      // echo the message to the handler
-      this.dataMessageHandler(new this.awsChime.DataMessage(
-        Date.now(),
-        dataType,
-        data,
-        this.meetingSession.configuration.credentials.attendeeId,
-        this.meetingSession.configuration.credentials.externalUserId
-      ));
+      if (this.checkMessageSize(data)){
+        // message size is ok
+        this.audioVideo.realtimeSendDataMessage(dataType, data, 2000);
+        // echo the message to the handler
+        this.dataMessageHandler(new this.awsChime.DataMessage(
+          Date.now(),
+          dataType,
+          data,
+          this.meetingSession.configuration.credentials.attendeeId,
+          this.meetingSession.configuration.credentials.externalUserId
+        ));
+      } else {
+        console.log('1234 NEED TO SPLIT!', dataType, data)
+        this.splitMessage(dataType, data).forEach( (message) => {
+          this.audioVideo.realtimeSendDataMessage(dataType, message, 2000);
+          // echo the message to the handler
+          this.dataMessageHandler(new this.awsChime.DataMessage(
+            Date.now(),
+            dataType,
+            message,
+            this.meetingSession.configuration.credentials.attendeeId,
+            this.meetingSession.configuration.credentials.externalUserId
+          ));
+        })
+      }
     });
 }
 
@@ -297,7 +320,9 @@ dataMessageHandler(dataMessage) {
   getMediaStream(clientId) { return Promise.reject("Interface method not implemented: getMediaStream")}
   
   async disconnect() {
-    // await this.endMeeting();
+    if(this.isMaster){
+      await this.endMeeting();
+    }
     this.leave(); 
   }
 
