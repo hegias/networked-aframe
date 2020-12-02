@@ -322,8 +322,16 @@ dataMessageHandler(dataMessage) {
   async disconnect() {
     if(this.isMaster){
       await this.endMeeting();
+    } else {
+      await this.leaveMeeting();
     }
-    this.leave(); 
+    this.close(); 
+  }
+
+  async leaveMeeting() {
+    await fetch(`${this.wsUrl}leave?title=${encodeURIComponent(this.room)}&attendeeid=${encodeURIComponent(this.myAttendeeId)}`, {
+      method: 'POST',
+    });
   }
 
   async endMeeting() {
@@ -332,10 +340,11 @@ dataMessageHandler(dataMessage) {
     });
   }
 
-  leave() {
+  close() {
     this.audioVideo.stop();
     this.roster = {};
     this.participantList = {}; 
+    this.isMaster = null;
     this.closedListener(this.myAttendeeId);
   }
   getServerTime() {  return new Date().getTime() }
