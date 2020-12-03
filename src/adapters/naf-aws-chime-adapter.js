@@ -105,8 +105,9 @@ class AwsChimeAdapter extends NafInterface {
         console.log('1234: AwsChimeAdapter -> connect -> initializeMeetingSession done');
 
         await this.join();
-        this.participantList = await this.getParticipantList();
-        this.isMaster = this.participantList.IsMaster;
+        this.onConnectResult = await this.onConnect();
+        this.isMaster = this.onConnectResult.IsMaster;
+        this.masterId = this.onConnectResult.MasterAttendeeId;
         this.setupDataMessage();
         this.setupSubscribeToAttendeeIdPresenceHandler();
         this.connectSuccess(this.myAttendeeId);
@@ -158,7 +159,7 @@ class AwsChimeAdapter extends NafInterface {
     const audioMix = document.getElementById('meeting-audio');
     await this.audioVideo.bindAudioElement(audioMix);
   }
-  async getParticipantList() {
+  async onConnect() {
     try {
       const response = await fetch(
         `${this.wsUrl}onconnect?externalMeetingId=${encodeURIComponent(this.externalMeetingId)}&attendeeid=${encodeURIComponent(this.myAttendeeId)}&externalUserId=${encodeURIComponent(this.externalUserId)}`,
@@ -310,7 +311,21 @@ dataMessageHandler(dataMessage) {
     };
     this.audioVideo.realtimeSubscribeToAttendeeIdPresence(handler);
   }
-  
+  async getParticipantList() {
+    try {
+      const response = await fetch(
+        `${this.wsUrl}list?title=${encodeURIComponent(this.room)}&attendeeid=${encodeURIComponent(this.myAttendeeId)}`,
+        {
+          method: 'POST',
+        }
+      );
+      const res_json = await response.json();
+      return res_json;
+    } catch (error) {
+        alert(error.message);
+      return;
+    }  
+  }
   
   shouldStartConnectionTo(clientId) {return false}
   startStreamConnection(clientId) {}
