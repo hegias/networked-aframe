@@ -247,7 +247,8 @@ class AwsChimeAdapter extends NafInterface {
         ));
       } else {
         console.log('1234 NEED TO SPLIT!', dataType, data)
-        this.splitMessage(dataType, data).forEach( (message) => {
+        this.splitMessage(dataType, data).forEach( (message, i) => {
+          console.log('1234 sending split message number ', i, message)
           this.audioVideo.realtimeSendDataMessage(dataType, message, 2000);
           // echo the message to the handler
           this.dataMessageHandler(new this.awsChime.DataMessage(
