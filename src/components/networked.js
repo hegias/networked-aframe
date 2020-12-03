@@ -94,6 +94,7 @@ AFRAME.registerComponent('networked', {
   init: function() {
     // HACK add ready state
 		this.ready = false;
+    this.master = null;
     this.OWNERSHIP_GAINED = 'ownership-gained';
     this.OWNERSHIP_CHANGED = 'ownership-changed';
     this.OWNERSHIP_LOST = 'ownership-lost';
@@ -227,6 +228,10 @@ AFRAME.registerComponent('networked', {
   },
 
   onConnected: function() {
+    // HACK
+    this.master = NAF.connection.adapter.masterId;
+    document.getElementById('scene').systems['networked'].master = this.master;
+    // HACK END
     if (this.data.owner === '') {
       this.lastOwnerTime = NAF.connection.getServerTime();
       this.el.setAttribute(this.name, { owner: NAF.clientId, creator: NAF.clientId });
@@ -525,6 +530,7 @@ AFRAME.registerComponent('networked', {
   },
 
   remove: function () {
+  console.log('1234  - NETWORKED');
     if (this.isMine() && NAF.connection.isConnected()) {
       var syncData = { networkId: this.data.networkId };
       if (NAF.entities.hasEntity(this.data.networkId)) {

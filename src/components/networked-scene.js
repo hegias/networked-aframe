@@ -57,6 +57,7 @@ AFRAME.registerComponent('networked-scene', {
   },
 
   remove: function() {
+  console.log('1234  - NETWORKED-SCENE REMOVE');
     NAF.log.write('networked-scene disconnected');
     this.el.removeEventListener('connect', this.connect);
     // HACK
