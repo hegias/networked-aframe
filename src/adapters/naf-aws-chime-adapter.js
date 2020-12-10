@@ -59,6 +59,7 @@ class AwsChimeAdapter extends NafInterface {
     this.encoder = new TextEncoder();
     this.awsChime = awsChime;
     this.roster = {};
+    this.shouldLeaveWhenDisconnect = true;
     this.name = 'remoteIDMax'+Math.floor(Math.random()*1000);
     this.topic = 'chat';
     this.logger = {
@@ -154,7 +155,17 @@ class AwsChimeAdapter extends NafInterface {
             console.log('1234 WebSocketClosed, disconnecting', this.isDisconnecting);
             if(!this.isDisconnecting){
               NAF.log.error(e);
-              if(e.closeCode !== 1006){
+              if(e.closeCode === 1006){
+                // meeting ended while this client was still connected
+                // Set flag to avoid leave
+                this.shouldLeaveWhenDisconnect = false;
+                // call naf disconnection which will clean naf stuff
+                // and then call this adapter's disconnect
+                // where we will avoid the leave due to previous flag
+                NAF.connection.disconnect();
+              } else {
+                // meeting left unexpectedly, with f5 or close tab
+                // we don't need to call naf, but we need to disconnect from chime
                 await this.disconnect();
               }
               // TODO anything after this does not work
@@ -388,7 +399,7 @@ dataMessageHandler(dataMessage) {
     console.log('1234  - AwsChimeAdapter  - disconnect  - disconnect');
     if(this.isMaster){
       await this.endMeeting();
-    } else {
+    } else if(this.shouldLeaveWhenDisconnect){
       await this.leaveMeeting(this.myAttendeeId);
     }
     this.close(); 
