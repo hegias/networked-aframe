@@ -21,7 +21,14 @@ class NafLogger {
   }
 
   error() {
+    if (this.errorCallback) {
+      this.errorCallback(arguments);
+    }
     console.error.apply(this, arguments);
+  }
+
+  setOnError(callback) {
+    this.errorCallback = callback;
   }
 }
 
