@@ -49,8 +49,9 @@ class AwsChimeAdapter extends NafInterface {
       const res_json = await region.json();
       return res_json.region;
     } catch (error) {
-        alert(error.message);
-      return "us-east-1";
+        NAF.log.error(error, error.message)
+        // alert(error.message);
+        return "us-east-1";
     }
   };
 
@@ -111,8 +112,10 @@ class AwsChimeAdapter extends NafInterface {
         this.setupDataMessage();
         this.setupSubscribeToAttendeeIdPresenceHandler();
         this.connectSuccess(this.myAttendeeId);
+        this.setupCustomSignaling();
       } catch (error) {
-        alert(error.message);
+        NAF.log.error(error, error.message)
+        // alert(error.message);
         return;
       }    
     });
@@ -128,7 +131,8 @@ class AwsChimeAdapter extends NafInterface {
     this.meetingSession = new this.awsChime.DefaultMeetingSession(configuration, this.logger, this.deviceController);
     this.audioVideo = this.meetingSession.audioVideo;
     this.audioVideo.addObserver(this);
-
+    console.log('1234 meeting session', this.meetingSession)
+    console.log('1234 audioVideo', this.audioVideo)
     // this.audioVideo.addDeviceChangeObserver(this);
     // this.setupDeviceLabelTrigger();
     // await this.populateAllDeviceLists();
@@ -138,6 +142,34 @@ class AwsChimeAdapter extends NafInterface {
     // this.setupDataMessage();
     // this.audioVideo.addContentShareObserver(this);
     // this.initContentShareDropDownItems();
+  }
+  
+  setupCustomSignaling() {
+    this.signalingClient = this.audioVideo.audioVideoController.meetingSessionContext.signalingClient;
+    console.log('1234  - AwsChimeAdapter  - setupCustomSignaling  - this.signalingClient', this.signalingClient);
+    const customObserver = {
+      async handleSignalingClientEvent(e) {
+        switch(e.type) {
+          case awsChime.SignalingClientEventType.WebSocketClosed:
+          case awsChime.SignalingClientEventType.WebSocketError:
+          case awsChime.SignalingClientEventType.WebSocketFailed:
+            console.log('1234 WebSocketFailed/Closed/Error');
+            NAF.log.error(e);
+            await this.disconnect();
+            break;
+            case awsChime.SignalingClientEventType.WebSocketSkippedMessage:
+              NAF.log.error(e);
+              console.log('1234 WebSocketSkipped');
+            break;
+          default:
+            // console.log('1234 default', e.type);
+            // do nothing
+            break;
+        }
+      }
+    };
+    customObserver.handleSignalingClientEvent = customObserver.handleSignalingClientEvent.bind(this);
+    this.signalingClient.registerObserver(customObserver);
   }
 
   async join() {
@@ -170,7 +202,8 @@ class AwsChimeAdapter extends NafInterface {
       const res_json = await response.json();
       return res_json;
     } catch (error) {
-        alert(error.message);
+        NA.log.error(error, error.message)
+        // alert(error.message);
       return;
     }  
   }
@@ -298,6 +331,11 @@ dataMessageHandler(dataMessage) {
         delete this.roster[attendeeId];
         console.log('1234 on roster delete', attendeeId, this.roster)
         this.closedListener(attendeeId);
+        if(this.isMaster){
+              // call endpoint to removeParticipant
+              console.log('1234 on roster delete -> master manual leave for', attendeeId)
+              this.leaveMeeting(attendeeId)
+        }
         return;
       }
       
@@ -323,7 +361,8 @@ dataMessageHandler(dataMessage) {
       const res_json = await response.json();
       return res_json;
     } catch (error) {
-        alert(error.message);
+        NAF.log.error(error, error.message)
+        // alert(error.message);
       return;
     }  
   }
@@ -336,21 +375,23 @@ dataMessageHandler(dataMessage) {
   getMediaStream(clientId) { return Promise.reject("Interface method not implemented: getMediaStream")}
   
   async disconnect() {
+    console.log('1234  - AwsChimeAdapter  - disconnect  - disconnect');
     if(this.isMaster){
       await this.endMeeting();
     } else {
-      await this.leaveMeeting();
+      await this.leaveMeeting(this.myAttendeeId);
     }
     this.close(); 
   }
 
-  async leaveMeeting() {
-    await fetch(`${this.wsUrl}leave?title=${encodeURIComponent(this.room)}&attendeeid=${encodeURIComponent(this.myAttendeeId)}`, {
+  async leaveMeeting(leavingAttendeeId) {
+    await fetch(`${this.wsUrl}leave?title=${encodeURIComponent(this.room)}&attendeeid=${encodeURIComponent(leavingAttendeeId)}`, {
       method: 'POST',
     });
   }
 
   async endMeeting() {
+    console.log('1234  - AwsChimeAdapter  - endMeeting  - endMeeting');
     await fetch(`${this.wsUrl}end?title=${encodeURIComponent(this.room)}`, {
       method: 'POST',
     });
