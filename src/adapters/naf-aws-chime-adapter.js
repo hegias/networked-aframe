@@ -151,11 +151,18 @@ class AwsChimeAdapter extends NafInterface {
       async handleSignalingClientEvent(e) {
         switch(e.type) {
           case awsChime.SignalingClientEventType.WebSocketClosed:
+            console.log('1234 WebSocketClosed, disconnecting', this.isDisconnecting);
+            if(!this.isDisconnecting){
+              NAF.log.error(e);
+              await this.disconnect();
+              // TODO anything after this does not work
+              // NAF.isDisconnecting = null;
+            }
+            break;
           case awsChime.SignalingClientEventType.WebSocketError:
           case awsChime.SignalingClientEventType.WebSocketFailed:
-            console.log('1234 WebSocketFailed/Closed/Error');
-            NAF.log.error(e);
-            await this.disconnect();
+              NAF.log.error(e);
+              await this.disconnect();
             break;
             case awsChime.SignalingClientEventType.WebSocketSkippedMessage:
               NAF.log.error(e);
@@ -375,6 +382,7 @@ dataMessageHandler(dataMessage) {
   getMediaStream(clientId) { return Promise.reject("Interface method not implemented: getMediaStream")}
   
   async disconnect() {
+    this.isDisconnecting = true
     console.log('1234  - AwsChimeAdapter  - disconnect  - disconnect');
     if(this.isMaster){
       await this.endMeeting();
