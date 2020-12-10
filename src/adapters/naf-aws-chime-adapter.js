@@ -154,7 +154,9 @@ class AwsChimeAdapter extends NafInterface {
             console.log('1234 WebSocketClosed, disconnecting', this.isDisconnecting);
             if(!this.isDisconnecting){
               NAF.log.error(e);
-              await this.disconnect();
+              if(e.closeCode !== 1006){
+                await this.disconnect();
+              }
               // TODO anything after this does not work
               // NAF.isDisconnecting = null;
             }
