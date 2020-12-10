@@ -10,6 +10,8 @@ AFRAME.registerComponent('networked-scene', {
     adapter: {default: 'socketio'}, // See https://github.com/networked-aframe/networked-aframe#adapters for list of adapters
     audio: {default: false}, // Only if adapter supports audio
     debug: {default: false},
+    // HACK
+    name: {default: 'Hegias User'},
   },
 
   init: function() {
@@ -34,7 +36,8 @@ AFRAME.registerComponent('networked-scene', {
     if (this.hasOnConnectFunction()) {
       this.callOnConnect();
     }
-    return NAF.connection.connect(this.data.serverURL, this.data.app, this.data.room, this.data.audio);
+    // HACK
+    return NAF.connection.connect(this.data.serverURL, this.data.app, this.data.room, this.data.audio, this.data.name);
   },
 
   checkDeprecatedProperties: function() {

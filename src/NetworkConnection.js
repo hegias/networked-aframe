@@ -28,13 +28,15 @@ class NetworkConnection {
         = this.entities.removeRemoteEntity.bind(this.entities);
   }
 
-  connect(serverUrl, appName, roomName, enableAudio = false) {
+  connect(serverUrl, appName, roomName, enableAudio = false, name) {
     NAF.app = appName;
     NAF.room = roomName;
 
     this.adapter.setServerUrl(serverUrl);
     this.adapter.setApp(appName);
     this.adapter.setRoom(roomName);
+    // HACK
+    this.adapter.setName(name);
 
     var webrtcOptions = {
       audio: enableAudio,

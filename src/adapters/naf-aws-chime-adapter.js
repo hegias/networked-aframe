@@ -21,6 +21,9 @@ class AwsChimeAdapter extends NafInterface {
     console.log('1234: AwsChimeAdapter -> setRoom -> roomName', this.room);
     
   }
+  setName(name){
+    this.name = name;
+  }
   setWebRtcOptions() {
     this.sendAudio = true;
   }
@@ -60,7 +63,6 @@ class AwsChimeAdapter extends NafInterface {
     this.awsChime = awsChime;
     this.roster = {};
     this.shouldLeaveWhenDisconnect = true;
-    this.name = 'remoteIDMax'+Math.floor(Math.random()*1000);
     this.topic = 'chat';
     this.logger = {
       info: (data)=>{console.log('log info '+data)},
