@@ -2,23 +2,26 @@ var NafInterface = require('../NafInterface');
 const awsChime = require('amazon-chime-sdk-js');
 
 class AwsChimeAdapter extends NafInterface {
-
+  constructor(){
+    super();
+    this.logsEnabled = false;
+  }
   /* Pre-Connect setup methods - Call before `connect` */
   setServerUrl(wsUrl) { 
     this.wsUrl = wsUrl;
-    console.log('1234: AwsChimeAdapter -> setServerUrl -> wsUrl', wsUrl);
+    this.logsEnabled && console.log('1234: AwsChimeAdapter -> setServerUrl -> wsUrl', wsUrl);
   
   }
   setApp(app) {
     this.app = app;
-    console.log('1234: AwsChimeAdapter -> setApp -> appName', app);
+    this.logsEnabled && console.log('1234: AwsChimeAdapter -> setApp -> appName', app);
   
   }
   setRoom(roomName) {
     this.room = roomName; 
     // this.room = "test"+Math.random()*1000;
     // this.room = "testfinalsupergreatroom";
-    console.log('1234: AwsChimeAdapter -> setRoom -> roomName', this.room);
+    this.logsEnabled && console.log('1234: AwsChimeAdapter -> setRoom -> roomName', this.room);
     
   }
   setName(name){
@@ -65,18 +68,18 @@ class AwsChimeAdapter extends NafInterface {
     this.shouldLeaveWhenDisconnect = true;
     this.topic = 'chat';
     this.logger = {
-      info: (data)=>{console.log('log info '+data)},
-      warn: (data)=>{console.log('log warn '+data)},
-      error: (data)=>{console.log('log error '+data)},
-      debug: (data)=>{/* console.log('1234 debug '+data()) */},
+      info: (data)=>{this.logsEnabled && console.log('log info '+data)},
+      warn: (data)=>{this.logsEnabled && console.log('log warn '+data)},
+      error: (data)=>{this.logsEnabled && console.log('log error '+data)},
+      debug: (data)=>{/* this.logsEnabled && console.log('1234 debug '+data()) */},
     }
     this.textDecoder = new TextDecoder();
 
-    console.log('1234: awsChime', this.awsChime);
+    this.logsEnabled && console.log('1234: awsChime', this.awsChime);
 
     // Fetch Region
     this.region = await this.getRegion();
-    console.log('1234 Using region: ', this.region);
+    this.logsEnabled && console.log('1234 Using region: ', this.region);
     // Start connection
     new this.awsChime.AsyncScheduler().start( async () => {      
       try {
@@ -88,25 +91,25 @@ class AwsChimeAdapter extends NafInterface {
         );
       
         this.json = await response.json();
-        console.log('1234: AwsChimeAdapter -> connect -> json', this.json);
+        this.logsEnabled && console.log('1234: AwsChimeAdapter -> connect -> json', this.json);
         this.joinToken = this.json.JoinInfo.Attendee.Attendee.JoinToken;
-        console.log('1234: AwsChimeAdapter -> connect -> joinToken', this.joinToken);
+        this.logsEnabled && console.log('1234: AwsChimeAdapter -> connect -> joinToken', this.joinToken);
         this.chimeMeetingId = this.json.JoinInfo.Meeting.Meeting.MeetingId;
         this.externalMeetingId = this.json.JoinInfo.Meeting.Meeting.ExternalMeetingId;
-        console.log('1234: AwsChimeAdapter -> connect -> chimeMeetingId', this.chimeMeetingId, 'externalMeetingId', this.externalMeetingId);
+        this.logsEnabled && console.log('1234: AwsChimeAdapter -> connect -> chimeMeetingId', this.chimeMeetingId, 'externalMeetingId', this.externalMeetingId);
         this.joinInfo = this.json.JoinInfo;
-        console.log('1234: AwsChimeAdapter -> connect -> joinInfo', this.joinInfo);
+        this.logsEnabled && console.log('1234: AwsChimeAdapter -> connect -> joinInfo', this.joinInfo);
         this.configuration = new this.awsChime.MeetingSessionConfiguration(this.joinInfo.Meeting, this.joinInfo.Attendee);
-        console.log('1234: AwsChimeAdapter -> connect -> configuration', this.configuration);
+        this.logsEnabled && console.log('1234: AwsChimeAdapter -> connect -> configuration', this.configuration);
         this.myAttendeeId = this.joinInfo.Attendee.Attendee.AttendeeId;
         this.externalUserId = this.joinInfo.Attendee.Attendee.ExternalUserId;
-        console.log('1234: AwsChimeAdapter -> connect -> this.myAttendeeId', this.myAttendeeId, 'externalUserId', this.externalUserId);
+        this.logsEnabled && console.log('1234: AwsChimeAdapter -> connect -> this.myAttendeeId', this.myAttendeeId, 'externalUserId', this.externalUserId);
         
         // Initialize Meeting - Device and AudioVideo stuff
         this.deviceController = new this.awsChime.DefaultDeviceController(this.logger);
-        console.log('1234: AwsChimeAdapter -> connect -> deviceController', this.deviceController);
+        this.logsEnabled && console.log('1234: AwsChimeAdapter -> connect -> deviceController', this.deviceController);
         await this.initializeMeetingSession(this.configuration);
-        console.log('1234: AwsChimeAdapter -> connect -> initializeMeetingSession done');
+        this.logsEnabled && console.log('1234: AwsChimeAdapter -> connect -> initializeMeetingSession done');
 
         await this.join();
         this.onConnectResult = await this.onConnect();
@@ -125,7 +128,7 @@ class AwsChimeAdapter extends NafInterface {
   }
 
   async initializeMeetingSession(configuration) {
-    console.log('1234: AwsChimeAdapter -> initializeMeetingSession -> initializeMeetingSession');
+    this.logsEnabled && console.log('1234: AwsChimeAdapter -> initializeMeetingSession -> initializeMeetingSession');
     
     configuration.enableWebAudio = true;
     configuration.enableUnifiedPlanForChromiumBasedBrowsers = false;
@@ -134,8 +137,8 @@ class AwsChimeAdapter extends NafInterface {
     this.meetingSession = new this.awsChime.DefaultMeetingSession(configuration, this.logger, this.deviceController);
     this.audioVideo = this.meetingSession.audioVideo;
     this.audioVideo.addObserver(this);
-    console.log('1234 meeting session', this.meetingSession)
-    console.log('1234 audioVideo', this.audioVideo)
+    this.logsEnabled && console.log('1234 meeting session', this.meetingSession)
+    this.logsEnabled && console.log('1234 audioVideo', this.audioVideo)
     // this.audioVideo.addDeviceChangeObserver(this);
     // this.setupDeviceLabelTrigger();
     // await this.populateAllDeviceLists();
@@ -149,12 +152,12 @@ class AwsChimeAdapter extends NafInterface {
   
   setupCustomSignaling() {
     this.signalingClient = this.audioVideo.audioVideoController.meetingSessionContext.signalingClient;
-    console.log('1234  - AwsChimeAdapter  - setupCustomSignaling  - this.signalingClient', this.signalingClient);
+    this.logsEnabled && console.log('1234  - AwsChimeAdapter  - setupCustomSignaling  - this.signalingClient', this.signalingClient);
     const customObserver = {
       async handleSignalingClientEvent(e) {
         switch(e.type) {
           case awsChime.SignalingClientEventType.WebSocketClosed:
-            console.log('1234 WebSocketClosed, disconnecting', this.isDisconnecting);
+            this.logsEnabled && console.log('1234 WebSocketClosed, disconnecting', this.isDisconnecting);
             if(!this.isDisconnecting){
               NAF.log.error(e);
               if(e.closeCode === 1006){
@@ -181,10 +184,10 @@ class AwsChimeAdapter extends NafInterface {
             break;
             case awsChime.SignalingClientEventType.WebSocketSkippedMessage:
               NAF.log.error(e);
-              console.log('1234 WebSocketSkipped');
+              this.logsEnabled && console.log('1234 WebSocketSkipped');
             break;
           default:
-            // console.log('1234 default', e.type);
+            // this.logsEnabled && console.log('1234 default', e.type);
             // do nothing
             break;
         }
@@ -195,7 +198,7 @@ class AwsChimeAdapter extends NafInterface {
   }
 
   async join() {
-    console.log('1234: AwsChimeAdapter -> join -> join');
+    this.logsEnabled && console.log('1234: AwsChimeAdapter -> join -> join');
     await this.openAudioInputFromSelection();
     await this.openAudioOutputFromSelection();
     this.audioVideo.start();
@@ -203,12 +206,12 @@ class AwsChimeAdapter extends NafInterface {
   
   async openAudioInputFromSelection() {
     this.audioInput = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    console.log('1234: AwsChimeAdapter -> openAudioInputFromSelection -> audioInput', this.audioInput);
+    this.logsEnabled && console.log('1234: AwsChimeAdapter -> openAudioInputFromSelection -> audioInput', this.audioInput);
     await this.audioVideo.chooseAudioInputDevice(this.audioInput);
   }
   
   async openAudioOutputFromSelection() {
-    console.log('1234: AwsChimeAdapter -> openAudioOutputFromSelection');
+    this.logsEnabled && console.log('1234: AwsChimeAdapter -> openAudioOutputFromSelection');
     await this.audioVideo.chooseAudioOutputDevice(this.audioInput);
     const audioMix = document.getElementById('meeting-audio');
     await this.audioVideo.bindAudioElement(audioMix);
@@ -230,23 +233,23 @@ class AwsChimeAdapter extends NafInterface {
     }  
   }
   setupDataMessage() {
-    console.log('1234: AwsChimeAdapter -> setupDataMessage');
+    this.logsEnabled && console.log('1234: AwsChimeAdapter -> setupDataMessage');
     // declare an handler for each topic naf uses
     this.audioVideo.realtimeSubscribeToReceiveDataMessage('u', (dataMessage) => {
       const parsedPayload = JSON.parse(dataMessage.text());
-      console.log('1234: on receivedDataMessage -> parsedPayload', parsedPayload);
+      this.logsEnabled && console.log('1234: on receivedDataMessage -> parsedPayload', parsedPayload);
       this.messageListener(this.name, 'u', parsedPayload)
       this.dataMessageHandler(dataMessage);
     });
     this.audioVideo.realtimeSubscribeToReceiveDataMessage('um', (dataMessage) => {
       const parsedPayload = JSON.parse(dataMessage.text());
-      console.log('1234: on receivedDataMessage -> parsedPayload', parsedPayload);
+      this.logsEnabled && console.log('1234: on receivedDataMessage -> parsedPayload', parsedPayload);
       this.messageListener(this.name, 'um', parsedPayload)
       this.dataMessageHandler(dataMessage);
     });
     this.audioVideo.realtimeSubscribeToReceiveDataMessage('r', (dataMessage) => {
       const parsedPayload = JSON.parse(dataMessage.text());
-      console.log('1234: on receivedDataMessage -> parsedPayload', parsedPayload);
+      this.logsEnabled && console.log('1234: on receivedDataMessage -> parsedPayload', parsedPayload);
       this.messageListener(this.name, 'r', parsedPayload)
       this.dataMessageHandler(dataMessage);
     });
@@ -255,7 +258,7 @@ class AwsChimeAdapter extends NafInterface {
 
   checkMessageSize(data){
     this.encodedMessage = this.encoder.encode(JSON.stringify(data))
-    console.log('1234  - checkMessageSize ', this.encodedMessage.length, data);
+    this.logsEnabled && console.log('1234  - checkMessageSize ', this.encodedMessage.length, data);
     if (this.encodedMessage.length > 2000) {
       return false;
     }
@@ -278,7 +281,7 @@ class AwsChimeAdapter extends NafInterface {
       // TODO split by single component
     }
 
-    console.log('SPLITTED this.messages', this.messages)
+    this.logsEnabled && console.log('SPLITTED this.messages', this.messages)
     return this.messages;
   }
 
@@ -301,9 +304,9 @@ class AwsChimeAdapter extends NafInterface {
           this.meetingSession.configuration.credentials.externalUserId
         ));
       } else {
-        console.log('1234 NEED TO SPLIT!', dataType, data)
+        this.logsEnabled && console.log('1234 NEED TO SPLIT!', dataType, data)
         this.splitMessage(dataType, data).forEach( (message, i) => {
-          console.log('1234 sending split message number ', i, message)
+          this.logsEnabled && console.log('1234 sending split message number ', i, message)
           this.audioVideo.realtimeSendDataMessage(dataType, message, 2000);
           // echo the message to the handler
           this.dataMessageHandler(new this.awsChime.DataMessage(
@@ -327,9 +330,9 @@ dataMessageHandler(dataMessage) {
     }
     this.lastReceivedMessageTimestamp = dataMessage.timestampMs;
     if(!isSelf){
-      console.log('1234 RECEIVED: ', dataMessage, JSON.parse(dataMessage.text()));
+      this.logsEnabled && console.log('1234 RECEIVED: ', dataMessage, JSON.parse(dataMessage.text()));
     }
-    console.log('1234 RECEIVED: ', dataMessage);
+    this.logsEnabled && console.log('1234 RECEIVED: ', dataMessage);
   
   }
 }
@@ -344,18 +347,18 @@ dataMessageHandler(dataMessage) {
 
   
   setupSubscribeToAttendeeIdPresenceHandler() {
-    console.log('1234: AwsChimeAdapter -> setupSubscribeToAttendeeIdPresenceHandler');
+    this.logsEnabled && console.log('1234: AwsChimeAdapter -> setupSubscribeToAttendeeIdPresenceHandler');
     const handler = (attendeeId, present, externalUserId, dropped) => {
       // delete myself from list
       // delete this.roster[this.myAttendeeId];
       
       if (!present) {
         delete this.roster[attendeeId];
-        console.log('1234 on roster delete', attendeeId, this.roster)
+        this.logsEnabled && console.log('1234 on roster delete', attendeeId, this.roster)
         this.closedListener(attendeeId);
         if(this.isMaster){
               // call endpoint to removeParticipant
-              console.log('1234 on roster delete -> master manual leave for', attendeeId)
+              this.logsEnabled && console.log('1234 on roster delete -> master manual leave for', attendeeId)
               this.leaveMeeting(attendeeId)
         }
         return;
@@ -365,7 +368,7 @@ dataMessageHandler(dataMessage) {
         this.roster[attendeeId] = {
           name: (externalUserId.split('#').slice(-1)[0]),
         };
-        console.log('1234 on roster add',attendeeId, this.roster)
+        this.logsEnabled && console.log('1234 on roster add',attendeeId, this.roster)
         this.openListener(attendeeId);
       }
       this.occupantListener(this.roster);
@@ -398,7 +401,7 @@ dataMessageHandler(dataMessage) {
   
   async disconnect() {
     this.isDisconnecting = true
-    console.log('1234  - AwsChimeAdapter  - disconnect  - disconnect');
+    this.logsEnabled && console.log('1234  - AwsChimeAdapter  - disconnect  - disconnect');
     if(this.isMaster){
       await this.endMeeting();
     } else if(this.shouldLeaveWhenDisconnect){
@@ -414,7 +417,7 @@ dataMessageHandler(dataMessage) {
   }
 
   async endMeeting() {
-    console.log('1234  - AwsChimeAdapter  - endMeeting  - endMeeting');
+    this.logsEnabled && console.log('1234  - AwsChimeAdapter  - endMeeting  - endMeeting');
     await fetch(`${this.wsUrl}end?title=${encodeURIComponent(this.room)}`, {
       method: 'POST',
     });
