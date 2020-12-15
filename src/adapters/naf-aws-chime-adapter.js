@@ -348,7 +348,7 @@ dataMessageHandler(dataMessage) {
   
   setupSubscribeToAttendeeIdPresenceHandler() {
     this.logsEnabled && console.log('1234: AwsChimeAdapter -> setupSubscribeToAttendeeIdPresenceHandler');
-    const handler = (attendeeId, present, externalUserId, dropped) => {
+    const handler = async (attendeeId, present, externalUserId, dropped) => {
       // delete myself from list
       // delete this.roster[this.myAttendeeId];
       
@@ -360,6 +360,13 @@ dataMessageHandler(dataMessage) {
               // call endpoint to removeParticipant
               this.logsEnabled && console.log('1234 on roster delete -> master manual leave for', attendeeId)
               this.leaveMeeting(attendeeId)
+        } else if (
+          attendeeId === this.masterId 
+          && Object.keys(this.roster)[0] === this.myAttendeeId
+        ) {
+          // have the first of the list to end the meeting since the master dropped
+          this.logsEnabled && console.log('1234 on roster delete - ending meeting because master left')
+          await this.endMeeting()
         }
         return;
       }
