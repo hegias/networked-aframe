@@ -5,6 +5,7 @@ class AwsChimeAdapter extends NafInterface {
   constructor(){
     super();
     this.logsEnabled = false;
+    this.forceEndMeeting = false;
   }
   /* Pre-Connect setup methods - Call before `connect` */
   setServerUrl(wsUrl) { 
@@ -409,7 +410,7 @@ dataMessageHandler(dataMessage) {
   async disconnect() {
     this.isDisconnecting = true
     this.logsEnabled && console.log('1234  - AwsChimeAdapter  - disconnect  - disconnect');
-    if(this.isMaster){
+    if(this.isMaster || this.forceEndMeeting){
       await this.endMeeting();
     } else if(this.shouldLeaveWhenDisconnect){
       await this.leaveMeeting(this.myAttendeeId);
