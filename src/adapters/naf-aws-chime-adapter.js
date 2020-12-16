@@ -432,7 +432,9 @@ dataMessageHandler(dataMessage) {
   }
 
   close() {
-    this.audioVideo?.stop();
+    if(this.audioVideo){
+      this.audioVideo.stop();
+    }
     this.roster = {};
     this.participantList = {}; 
     this.isMaster = null;
