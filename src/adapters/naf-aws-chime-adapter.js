@@ -432,11 +432,13 @@ dataMessageHandler(dataMessage) {
   }
 
   close() {
-    this.audioVideo.stop();
+    this.audioVideo?.stop();
     this.roster = {};
     this.participantList = {}; 
     this.isMaster = null;
-    this.closedListener(this.myAttendeeId);
+    if(this.closedListener){
+      this.closedListener(this.myAttendeeId);
+    }
   }
   getServerTime() {  return new Date().getTime() }
 }
