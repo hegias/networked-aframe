@@ -113,13 +113,14 @@ class AwsChimeAdapter extends NafInterface {
         this.logsEnabled && console.log('1234: AwsChimeAdapter -> connect -> deviceController', this.deviceController);
         await this.initializeMeetingSession(this.configuration);
         this.logsEnabled && console.log('1234: AwsChimeAdapter -> connect -> initializeMeetingSession done');
+        
+        this.setupSubscribeToAttendeeIdPresenceHandler();
 
         await this.join();
         this.onConnectResult = await this.onConnect();
         this.isMaster = this.onConnectResult.IsMaster;
         this.masterId = this.onConnectResult.MasterAttendeeId;
         this.setupDataMessage();
-        this.setupSubscribeToAttendeeIdPresenceHandler();
         this.connectSuccess(this.myAttendeeId);
         this.setupCustomSignaling();
       } catch (error) {
