@@ -375,7 +375,11 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
           name: (externalUserId.split('#').slice(-1)[0]),
         };
         this.logsEnabled && console.log('1234 on roster add',attendeeId, this.roster)
-        this.openListener(attendeeId);
+        setTimeout( ()=>{
+          console.log('1234 CALLING OPENLISTENER', attendeeId)
+          this.openListener(attendeeId)
+        }, 10000)
+        // this.openListener(attendeeId);
       }
       this.occupantListener(this.roster);
     };
