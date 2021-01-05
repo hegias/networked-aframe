@@ -238,21 +238,18 @@ class AwsChimeAdapter extends NafInterface {
     // declare an handler for each topic naf uses
     this.audioVideo.realtimeSubscribeToReceiveDataMessage('u', (dataMessage) => {
       const parsedPayload = JSON.parse(dataMessage.text());
-      this.logsEnabled && console.log('1234: on receivedDataMessage -> parsedPayload', parsedPayload);
       this.messageListener(this.name, 'u', parsedPayload)
-      this.dataMessageHandler(dataMessage);
+      this.logsEnabled && this.dataMessageHandler('RECEIVED u', dataMessage, parsedPayload);
     });
     this.audioVideo.realtimeSubscribeToReceiveDataMessage('um', (dataMessage) => {
       const parsedPayload = JSON.parse(dataMessage.text());
-      this.logsEnabled && console.log('1234: on receivedDataMessage -> parsedPayload', parsedPayload);
       this.messageListener(this.name, 'um', parsedPayload)
-      this.dataMessageHandler(dataMessage);
+      this.logsEnabled && this.dataMessageHandler('RECEIVED um', dataMessage, parsedPayload);
     });
     this.audioVideo.realtimeSubscribeToReceiveDataMessage('r', (dataMessage) => {
       const parsedPayload = JSON.parse(dataMessage.text());
-      this.logsEnabled && console.log('1234: on receivedDataMessage -> parsedPayload', parsedPayload);
       this.messageListener(this.name, 'r', parsedPayload)
-      this.dataMessageHandler(dataMessage);
+      this.logsEnabled && this.dataMessageHandler('RECEIVED r', dataMessage, parsedPayload);
     });
 
   }
@@ -297,32 +294,32 @@ class AwsChimeAdapter extends NafInterface {
         // message size is ok
         this.audioVideo.realtimeSendDataMessage(dataType, data, 2000);
         // echo the message to the handler
-        this.dataMessageHandler(new this.awsChime.DataMessage(
+        this.logsEnabled && this.dataMessageHandler('SENT', new this.awsChime.DataMessage(
           Date.now(),
           dataType,
           data,
           this.meetingSession.configuration.credentials.attendeeId,
           this.meetingSession.configuration.credentials.externalUserId
-        ));
+        ), data);
       } else {
         this.logsEnabled && console.log('1234 NEED TO SPLIT!', dataType, data)
         this.splitMessage(dataType, data).forEach( (message, i) => {
           this.logsEnabled && console.log('1234 sending split message number ', i, message)
           this.audioVideo.realtimeSendDataMessage(dataType, message, 2000);
           // echo the message to the handler
-          this.dataMessageHandler(new this.awsChime.DataMessage(
+          this.logsEnabled && this.dataMessageHandler('SENT', new this.awsChime.DataMessage(
             Date.now(),
             dataType,
             message,
             this.meetingSession.configuration.credentials.attendeeId,
             this.meetingSession.configuration.credentials.externalUserId
-          ));
+          ), message);
         })
       }
     });
 }
 
-dataMessageHandler(dataMessage) {
+dataMessageHandler(mode, dataMessage, parsedMessage) {
   // Handles echoing of messages onto console log
   if (!dataMessage.throttled) {
     const isSelf = dataMessage.senderAttendeeId === this.meetingSession.configuration.credentials.attendeeId;
@@ -330,10 +327,8 @@ dataMessageHandler(dataMessage) {
       return;
     }
     this.lastReceivedMessageTimestamp = dataMessage.timestampMs;
-    if(!isSelf){
-      this.logsEnabled && console.log('1234 RECEIVED: ', dataMessage, JSON.parse(dataMessage.text()));
-    }
-    this.logsEnabled && console.log('1234 RECEIVED: ', dataMessage);
+
+    this.logsEnabled && console.log('1234 ', mode,' : ', dataMessage, parsedMessage);
   
   }
 }
