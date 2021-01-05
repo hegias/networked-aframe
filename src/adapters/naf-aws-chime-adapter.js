@@ -324,6 +324,9 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
   if (!dataMessage.throttled) {
     const isSelf = dataMessage.senderAttendeeId === this.meetingSession.configuration.credentials.attendeeId;
     if (dataMessage.timestampMs <= this.lastReceivedMessageTimestamp) {
+      this.logsEnabled && console.log('1234 ', mode,' : ', dataMessage, parsedMessage, 
+      'timestamp anomaly --> current', dataMessage.timestampMs, 'vs lastReceived', this.lastReceivedMessageTimestamp
+    );
       return;
     }
     this.lastReceivedMessageTimestamp = dataMessage.timestampMs;
