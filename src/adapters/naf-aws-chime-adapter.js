@@ -6,6 +6,8 @@ class AwsChimeAdapter extends NafInterface {
     super();
     this.logsEnabled = false;
     this.forceEndMeeting = false;
+    this.waitingAttendeesForOpenListener = [];
+    this.audioVideoDidStartVariable = false;
   }
   /* Pre-Connect setup methods - Call before `connect` */
   setServerUrl(wsUrl) { 
@@ -149,6 +151,17 @@ class AwsChimeAdapter extends NafInterface {
     // this.setupDataMessage();
     // this.audioVideo.addContentShareObserver(this);
     // this.initContentShareDropDownItems();
+  }
+
+  audioVideoDidStart(){
+    this.logsEnabled && console.log('1234 AUDIO VIDEO DID START !')
+    if(!this.audioVideoDidStartVariable){
+      this.audioVideoDidStartVariable = true;
+      this.waitingAttendeesForOpenListener.forEach((attendeeId)=>{
+        this.openListener(attendeeId);
+      })
+      this.waitingAttendeesForOpenListener = [];
+    }
   }
   
   setupCustomSignaling() {
@@ -375,10 +388,13 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
           name: (externalUserId.split('#').slice(-1)[0]),
         };
         this.logsEnabled && console.log('1234 on roster add',attendeeId, this.roster)
-        setTimeout( ()=>{
-          console.log('1234 CALLING OPENLISTENER', attendeeId)
-          this.openListener(attendeeId)
-        }, 10000)
+
+        if(this.audioVideoDidStartVariable){
+          this.openListener(attendeeId);
+        } else {
+          this.logsEnabled && console.log('1234 waiting for audioVideoDidStart', attendeeId)
+          this.waitingAttendeesForOpenListener.push(attendeeId);
+        }
         // this.openListener(attendeeId);
       }
       this.occupantListener(this.roster);
@@ -440,6 +456,8 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
     this.roster = {};
     this.participantList = {}; 
     this.isMaster = null;
+    this.waitingAttendeesForOpenListener = [];
+    this.audioVideoDidStartVariable = false;
     if(this.closedListener){
       this.closedListener(this.myAttendeeId);
     }
