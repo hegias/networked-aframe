@@ -279,8 +279,9 @@ AFRAME.registerComponent('networked', {
 
   /* Sending updates */
 
-  syncAll: function(targetClientId, isFirstSync) {
-    if (!this.canSync()) {
+  syncAll: function(targetClientId, isFirstSync, force=false) {
+    if (!this.canSync() && !force) {
+      console.log('1234 CANNOT SYNC', this.el)
       return;
     }
 

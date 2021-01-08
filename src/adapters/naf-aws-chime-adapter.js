@@ -6,7 +6,7 @@ class AwsChimeAdapter extends NafInterface {
     super();
     this.logsEnabled = false;
     this.forceEndMeeting = false;
-    this.waitingAttendeesForOpenListener = [];
+    this.waitingAttendeesForOpenListener = {};
     this.audioVideoDidStartVariable = false;
   }
   /* Pre-Connect setup methods - Call before `connect` */
@@ -114,15 +114,14 @@ class AwsChimeAdapter extends NafInterface {
         await this.initializeMeetingSession(this.configuration);
         this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> connect -> initializeMeetingSession done');
         
+        this.onConnectResult = await this.onConnect();
+        this.isMaster = this.onConnectResult.IsMaster;
+        this.masterId = this.onConnectResult.MasterAttendeeId;
+
         this.setupDataMessage();
         this.setupSubscribeToAttendeeIdPresenceHandler();
 
         await this.join();
-        this.onConnectResult = await this.onConnect();
-        this.isMaster = this.onConnectResult.IsMaster;
-        this.masterId = this.onConnectResult.MasterAttendeeId;
-        // this.connectSuccess(this.myAttendeeId);
-        // this.setupCustomSignaling();
       } catch (error) {
         NAF.log.error(error, error.message)
         // alert(error.message);
@@ -147,15 +146,15 @@ class AwsChimeAdapter extends NafInterface {
 
   audioVideoDidStart(){
     this.logsEnabled && console.log(new Date().toISOString(),  '1234 AUDIO VIDEO DID START !')
-    // this.setupDataMessage();
     this.connectSuccess(this.myAttendeeId);
     this.setupCustomSignaling();
-    if(!this.audioVideoDidStartVariable){
-      this.audioVideoDidStartVariable = true;
-      this.waitingAttendeesForOpenListener.forEach((attendeeId)=>{
-        this.openListener(attendeeId);
-      })
-      this.waitingAttendeesForOpenListener = [];
+    if(!this.isMaster){
+      const readySignal = {
+        attendeeId: this.myAttendeeId,
+        signal: "ready"
+      }
+      this.logsEnabled && console.log(new Date().toISOString(),  '1234 sending READY signal !', readySignal)
+      this.sendData('signaling', readySignal);
     }
   }
   
@@ -259,7 +258,13 @@ class AwsChimeAdapter extends NafInterface {
       this.messageListener(this.name, 'r', parsedPayload)
       this.logsEnabled && this.dataMessageHandler('RECEIVED r', dataMessage, parsedPayload);
     });
-
+    if(this.isMaster){
+      this.audioVideo.realtimeSubscribeToReceiveDataMessage('signaling', (dataMessage) => {
+        const parsedPayload = JSON.parse(dataMessage.text());
+        this.logsEnabled && this.dataMessageHandler('RECEIVED signaling', dataMessage, parsedPayload);
+        this.handleSignal(parsedPayload);
+      });
+    }
   }
 
   checkMessageSize(data){
@@ -289,6 +294,31 @@ class AwsChimeAdapter extends NafInterface {
 
     this.logsEnabled && console.log('SPLITTED this.messages', this.messages)
     return this.messages;
+  }
+
+  handleSignal(parsedPayload){
+    if (!parsedPayload.signal){
+      return;
+    }
+
+    switch (parsedPayload.signal){
+      case "ready":
+        // do stuff
+        this.logsEnabled && console.log(new Date().toISOString(), '1234 received ready signal from', parsedPayload.attendeeId)
+        const attendeeStatus = this.waitingAttendeesForOpenListener[parsedPayload.attendeeId];
+        if(attendeeStatus && attendeeStatus==="waiting" && parsedPayload.attendeeId !== this.myAttendeeId){
+          this.logsEnabled && console.log(new Date().toISOString(), '1234 received ready signal from', parsedPayload.attendeeId, 'he was waiting. Proceed to send him updates')
+          this.openListener(parsedPayload.attendeeId);
+          this.waitingAttendeesForOpenListener[parsedPayload.attendeeId] = "ready"
+          this.logsEnabled && console.log(new Date().toISOString(), '1234 all updates sent to', parsedPayload.attendeeId, 'transitioning to ready now')
+        } else {
+          this.logsEnabled && console.log(new Date().toISOString(), '1234 received ready signal from', parsedPayload.attendeeId, 'but he was not waiting, he was', attendeeStatus  )
+        }
+        break;
+        default:
+          this.logsEnabled && console.log(new Date().toISOString(), '1234 received', parsedPayload.signal, 'signal from', parsedPayload.attendeeId, '. Signal is not handled')
+          //do stuff
+    }
   }
 
   sendData(dataType, data) { 
@@ -384,11 +414,9 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
         };
         this.logsEnabled && console.log(new Date().toISOString(),  '1234 on roster add',attendeeId, this.roster)
 
-        if(this.audioVideoDidStartVariable){
-          this.openListener(attendeeId);
-        } else {
-          this.logsEnabled && console.log(new Date().toISOString(),  '1234 waiting for audioVideoDidStart', attendeeId)
-          this.waitingAttendeesForOpenListener.push(attendeeId);
+        if(attendeeId !== this.myAttendeeId && this.isMaster){
+          this.logsEnabled && console.log(new Date().toISOString(),  '1234 adding attendee to queue. waiting for ready signal', attendeeId)
+          this.waitingAttendeesForOpenListener[attendeeId] = 'waiting';
         }
         // this.openListener(attendeeId);
       }
@@ -451,7 +479,7 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
     this.roster = {};
     this.participantList = {}; 
     this.isMaster = null;
-    this.waitingAttendeesForOpenListener = [];
+    this.waitingAttendeesForOpenListener = {};
     this.audioVideoDidStartVariable = false;
     if(this.closedListener){
       this.closedListener(this.myAttendeeId);
