@@ -94,6 +94,7 @@ class NetworkEntities {
 
     var parentNotCreatedYet = parent && !this.hasEntity(parent);
     if (parentNotCreatedYet) {
+      console.log('1234 receiveFirstUpdateFromEntity -> PARENT NOT CREATED YET. parent is', parent, 'entityData is', entityData)
       this.childCache.addChild(parent, entityData);
     } else {
       var remoteEntity = this.createRemoteEntity(entityData);
@@ -104,6 +105,7 @@ class NetworkEntities {
 
   createAndAppendChildren(parentId, parentEntity) {
     var children = this.childCache.getChildren(parentId);
+    console.log('1234  - createAndAppendChildren  - now creating children', children, 'of parent', parentId, parentEntity);
     for (var i = 0; i < children.length; i++) {
       var childEntityData = children[i];
       var childId = childEntityData.networkId;
