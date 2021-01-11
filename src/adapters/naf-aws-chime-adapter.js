@@ -331,6 +331,7 @@ class AwsChimeAdapter extends NafInterface {
       if (this.checkMessageSize(data)){
         // message size is ok
         this.audioVideo.realtimeSendDataMessage(dataType, data, 2000);
+        this.logsEnabled && this.audioVideo.realtimeSendDataMessage('chat', data, 2000);
         // echo the message to the handler
         this.logsEnabled && this.dataMessageHandler('SENT', new this.awsChime.DataMessage(
           Date.now(),
@@ -344,6 +345,7 @@ class AwsChimeAdapter extends NafInterface {
         this.splitMessage(dataType, data).forEach( (message, i) => {
           this.logsEnabled && console.log(new Date().toISOString(),  '1234 sending split message number ', i, message)
           this.audioVideo.realtimeSendDataMessage(dataType, message, 2000);
+          this.logsEnabled && this.audioVideo.realtimeSendDataMessage('chat', data, 2000);
           // echo the message to the handler
           this.logsEnabled && this.dataMessageHandler('SENT', new this.awsChime.DataMessage(
             Date.now(),
