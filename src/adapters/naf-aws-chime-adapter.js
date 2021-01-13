@@ -8,6 +8,12 @@ class AwsChimeAdapter extends NafInterface {
     this.forceEndMeeting = false;
     this.waitingAttendeesForOpenListener = {};
     this.audioVideoDidStartVariable = false;
+    this.sentMessagesCounter = 0;
+    this.totalReceivedMessagesCounter = 0
+    this.receivedUMessagesCounter = 0;
+    this.receivedUMMessagesCounter = 0;
+    this.receivedSignalingMessagesCounter = 0;
+    this.receivedRMessagesCounter = 0;
   }
   /* Pre-Connect setup methods - Call before `connect` */
   setServerUrl(wsUrl) { 
@@ -244,24 +250,32 @@ class AwsChimeAdapter extends NafInterface {
     this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> setupDataMessage');
     // declare an handler for each topic naf uses
     this.audioVideo.realtimeSubscribeToReceiveDataMessage('u', (dataMessage) => {
+      this.totalReceivedMessagesCounter ++;
+      this.receivedUMessagesCounter ++;
       const parsedPayload = JSON.parse(dataMessage.text());
       this.messageListener(this.name, 'u', parsedPayload)
-      this.logsEnabled && this.dataMessageHandler('RECEIVED u', dataMessage, parsedPayload);
+      this.logsEnabled && this.dataMessageHandler(`RECEIVED u /${this.receivedUMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
     this.audioVideo.realtimeSubscribeToReceiveDataMessage('um', (dataMessage) => {
+      this.totalReceivedMessagesCounter ++;
+      this.receivedUMMessagesCounter ++;
       const parsedPayload = JSON.parse(dataMessage.text());
       this.messageListener(this.name, 'um', parsedPayload)
-      this.logsEnabled && this.dataMessageHandler('RECEIVED um', dataMessage, parsedPayload);
+      this.logsEnabled && this.dataMessageHandler(`RECEIVED um /${this.receivedUMMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
     this.audioVideo.realtimeSubscribeToReceiveDataMessage('r', (dataMessage) => {
+      this.totalReceivedMessagesCounter ++;
+      this.receivedRMessagesCounter ++;
       const parsedPayload = JSON.parse(dataMessage.text());
       this.messageListener(this.name, 'r', parsedPayload)
-      this.logsEnabled && this.dataMessageHandler('RECEIVED r', dataMessage, parsedPayload);
+      this.logsEnabled && this.dataMessageHandler(`RECEIVED r /${this.receivedRMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
     if(this.isMaster){
       this.audioVideo.realtimeSubscribeToReceiveDataMessage('signaling', (dataMessage) => {
+        this.totalReceivedMessagesCounter ++;
+        this.receivedSignalingMessagesCounter ++;
         const parsedPayload = JSON.parse(dataMessage.text());
-        this.logsEnabled && this.dataMessageHandler('RECEIVED signaling', dataMessage, parsedPayload);
+        this.logsEnabled && this.dataMessageHandler(`RECEIVED signaling /${this.receivedSignalingMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
         this.handleSignal(parsedPayload);
       });
     }
@@ -330,24 +344,32 @@ class AwsChimeAdapter extends NafInterface {
       // forward naf dataType as topic of the message
       if (this.checkMessageSize(data)){
         // message size is ok
+        if(this.logsEnabled){
+          this.sentMessagesCounter ++;
+          data.messageNumber = this.sentMessagesCounter
+        }
         this.audioVideo.realtimeSendDataMessage(dataType, data, 2000);
         this.logsEnabled && this.audioVideo.realtimeSendDataMessage('chat', data, 2000);
         // echo the message to the handler
-        this.logsEnabled && this.dataMessageHandler('SENT', new this.awsChime.DataMessage(
+        this.logsEnabled && this.dataMessageHandler(`SENT /${data.messageNumber}`, new this.awsChime.DataMessage(
           Date.now(),
           dataType,
           data,
           this.meetingSession.configuration.credentials.attendeeId,
           this.meetingSession.configuration.credentials.externalUserId
-        ), data);
-      } else {
-        this.logsEnabled && console.log(new Date().toISOString(),  '1234 NEED TO SPLIT!', dataType, data)
-        this.splitMessage(dataType, data).forEach( (message, i) => {
+          ), data);
+        } else {
+          this.logsEnabled && console.log(new Date().toISOString(),  '1234 NEED TO SPLIT!', dataType, data)
+          this.splitMessage(dataType, data).forEach( (message, i) => {
+          if(this.logsEnabled){
+            this.sentMessagesCounter ++;
+            message.messageNumber = this.sentMessagesCounter
+          }
           this.logsEnabled && console.log(new Date().toISOString(),  '1234 sending split message number ', i, message)
           this.audioVideo.realtimeSendDataMessage(dataType, message, 2000);
           this.logsEnabled && this.audioVideo.realtimeSendDataMessage('chat', data, 2000);
           // echo the message to the handler
-          this.logsEnabled && this.dataMessageHandler('SENT', new this.awsChime.DataMessage(
+          this.logsEnabled && this.dataMessageHandler(`SENT /${message.messageNumber}`, new this.awsChime.DataMessage(
             Date.now(),
             dataType,
             message,
