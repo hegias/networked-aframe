@@ -367,7 +367,7 @@ class AwsChimeAdapter extends NafInterface {
           }
           this.logsEnabled && console.log(new Date().toISOString(),  '1234 sending split message number ', i, message)
           this.audioVideo.realtimeSendDataMessage(dataType, message, 2000);
-          this.logsEnabled && this.audioVideo.realtimeSendDataMessage('chat', data, 2000);
+          this.logsEnabled && this.audioVideo.realtimeSendDataMessage('chat', message, 2000);
           // echo the message to the handler
           this.logsEnabled && this.dataMessageHandler(`SENT /${message.messageNumber}`, new this.awsChime.DataMessage(
             Date.now(),
