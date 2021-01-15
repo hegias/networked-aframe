@@ -152,6 +152,7 @@ class NetworkEntities {
         this.entities[id].components.networked.syncAll(targetClientId, isFirstSync, force);
       }
     }
+    console.log('1234  - completeSync  FINISHED');
   }
 
   removeRemoteEntity(toClient, dataType, data, source) {
