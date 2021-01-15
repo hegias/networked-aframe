@@ -14,7 +14,6 @@
     "dev": "npm run build && node ./server/index.js",
     "dist": "webpack --config webpack.config.js && webpack -p --config webpack.prod.config.js",
     "lint": "eslint src tests *.js",
-    "prepare": "npm run dist",
     "preghpages": "npm run build && shx rm -rf gh-pages && shx mkdir gh-pages && shx cp -r examples/* gh-pages",
     "ghpages": "npm run preghpages && ghpages -p gh-pages",
     "start": "node ./server/index.js",
