@@ -254,28 +254,28 @@ class AwsChimeAdapter extends NafInterface {
       this.receivedUMessagesCounter ++;
       const parsedPayload = JSON.parse(dataMessage.text());
       this.messageListener(this.name, 'u', parsedPayload)
-      this.logsEnabled && this.dataMessageHandler(`RECEIVED u /${this.receivedUMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
+      this.logsEnabled && this.dataMessageHandler(`RECEIVED u -${this.receivedUMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
     this.audioVideo.realtimeSubscribeToReceiveDataMessage('um', (dataMessage) => {
       this.totalReceivedMessagesCounter ++;
       this.receivedUMMessagesCounter ++;
       const parsedPayload = JSON.parse(dataMessage.text());
       this.messageListener(this.name, 'um', parsedPayload)
-      this.logsEnabled && this.dataMessageHandler(`RECEIVED um /${this.receivedUMMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
+      this.logsEnabled && this.dataMessageHandler(`RECEIVED um -${this.receivedUMMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
     this.audioVideo.realtimeSubscribeToReceiveDataMessage('r', (dataMessage) => {
       this.totalReceivedMessagesCounter ++;
       this.receivedRMessagesCounter ++;
       const parsedPayload = JSON.parse(dataMessage.text());
       this.messageListener(this.name, 'r', parsedPayload)
-      this.logsEnabled && this.dataMessageHandler(`RECEIVED r /${this.receivedRMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
+      this.logsEnabled && this.dataMessageHandler(`RECEIVED r -${this.receivedRMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
     if(this.isMaster){
       this.audioVideo.realtimeSubscribeToReceiveDataMessage('signaling', (dataMessage) => {
         this.totalReceivedMessagesCounter ++;
         this.receivedSignalingMessagesCounter ++;
         const parsedPayload = JSON.parse(dataMessage.text());
-        this.logsEnabled && this.dataMessageHandler(`RECEIVED signaling /${this.receivedSignalingMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
+        this.logsEnabled && this.dataMessageHandler(`RECEIVED signaling -${this.receivedSignalingMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
         this.handleSignal(parsedPayload);
       });
     }
@@ -351,7 +351,7 @@ class AwsChimeAdapter extends NafInterface {
         this.audioVideo.realtimeSendDataMessage(dataType, data, 2000);
         this.logsEnabled && this.audioVideo.realtimeSendDataMessage('chat', data, 2000);
         // echo the message to the handler
-        this.logsEnabled && this.dataMessageHandler(`SENT /${data.messageNumber}`, new this.awsChime.DataMessage(
+        this.logsEnabled && this.dataMessageHandler(`SENT -${data.messageNumber}`, new this.awsChime.DataMessage(
           Date.now(),
           dataType,
           data,
@@ -369,7 +369,7 @@ class AwsChimeAdapter extends NafInterface {
           this.audioVideo.realtimeSendDataMessage(dataType, message, 2000);
           this.logsEnabled && this.audioVideo.realtimeSendDataMessage('chat', message, 2000);
           // echo the message to the handler
-          this.logsEnabled && this.dataMessageHandler(`SENT /${message.messageNumber}`, new this.awsChime.DataMessage(
+          this.logsEnabled && this.dataMessageHandler(`SENT -${message.messageNumber}`, new this.awsChime.DataMessage(
             Date.now(),
             dataType,
             message,
