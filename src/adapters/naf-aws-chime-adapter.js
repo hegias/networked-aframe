@@ -15,6 +15,7 @@ class AwsChimeAdapter extends NafInterface {
     this.receivedSignalingMessagesCounter = 0;
     this.receivedRMessagesCounter = 0;
     this.receivedPersonalMessagesCounter = 0;
+    this.receivedEntitiesCountMessagesCounter = 0;
   }
   /* Pre-Connect setup methods - Call before `connect` */
   setServerUrl(wsUrl) { 
@@ -153,7 +154,13 @@ class AwsChimeAdapter extends NafInterface {
 
   audioVideoDidStart(){
     this.logsEnabled && console.log(new Date().toISOString(),  '1234 AUDIO VIDEO DID START !')
+
+    this.onConnectedFinished = this.onConnectedFinished.bind(this);
+    document.body.addEventListener('onConnectedFinished', this.onConnectedFinished, {once:true});
     this.connectSuccess(this.myAttendeeId);
+  }
+  
+  onConnectedFinished(){
     this.setupCustomSignaling();
     if(!this.isMaster){
       const readySignal = {
@@ -287,12 +294,21 @@ class AwsChimeAdapter extends NafInterface {
         this.logsEnabled && this.dataMessageHandler(`RECEIVED signaling -${this.receivedSignalingMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
         this.handleSignal(parsedPayload);
       });
+    } else {
+      this.audioVideo.realtimeSubscribeToReceiveDataMessage('entitiesCount', (dataMessage) => {
+        this.totalReceivedMessagesCounter ++;
+        this.receivedEntitiesCountMessagesCounter ++;
+        const parsedPayload = JSON.parse(dataMessage.text());
+        // this.messageListener(this.name, parsedPayload.dataType, parsedPayload)
+        this.handleEntitiesCountMessage(this.name, parsedPayload);
+        this.logsEnabled && this.dataMessageHandler(`RECEIVED EntitiesCount /${this.receivedEntitiesCountMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
+      });
     }
   }
 
   checkMessageSize(data){
     this.encodedMessage = this.encoder.encode(JSON.stringify(data))
-    this.logsEnabled && console.log(new Date().toISOString(),  '1234  - checkMessageSize ', this.encodedMessage.length, data);
+    this.logsEnabled && console.log(new Date().toISOString(),  '1234  - checkMessageSize ', this.encodedMessage.length);
     if (this.encodedMessage.length > 2000) {
       return false;
     }
@@ -321,6 +337,9 @@ class AwsChimeAdapter extends NafInterface {
 
   handlePersonalMessage(name,dataType, parsedPayload){
     this.logsEnabled && console.log('Received personal message,', dataType, 'index',parsedPayload.index, 'name', name, 'payload', parsedPayload)
+  }
+  handleEntitiesCountMessage(name,parsedPayload){
+    this.logsEnabled && console.log('Received entitiesCount message, number is', parsedPayload.numberOfEntities, parsedPayload)
   }
 
   handleSignal(parsedPayload){
