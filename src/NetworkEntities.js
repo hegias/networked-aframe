@@ -156,6 +156,11 @@ class NetworkEntities {
         this.entities[id].components.networked.syncAll(targetClientId, isFirstSync, force, i)
       }
     })
+    if(NAF.connection.adapter.isMaster){
+      const payload = {}
+      payload.numberOfEntities = Object.keys(this.entities).length;
+      NAF.connection.sendDataGuaranteed(targetClientId, 'entitiesCount', payload);
+    }
     console.log('1234  - completeSync  FINISHED2');
   }
 
