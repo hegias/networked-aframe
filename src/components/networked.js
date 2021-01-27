@@ -279,7 +279,8 @@ AFRAME.registerComponent('networked', {
 
   /* Sending updates */
 
-  syncAll: function(targetClientId, isFirstSync, force=false) {
+  syncAll: function(targetClientId, isFirstSync, force=false, index) {
+    console.log('1234 networked - syncAll', targetClientId, 'index', index, 'this is', this)
     if (!this.canSync() && !force) {
       console.log('1234 CANNOT SYNC', this.el)
       return;
@@ -288,11 +289,15 @@ AFRAME.registerComponent('networked', {
     var components = this.gatherComponentsData(true);
 
     var syncData = this.createSyncData(components, isFirstSync);
-
-    if (targetClientId) {
-      NAF.connection.sendDataGuaranteed(targetClientId, 'u', syncData);
+    if(index !== undefined && targetClientId){
+      syncData.index = index
+      syncData.dataType = 'u';
+      console.log('1234 sending syncAll to ', targetClientId, 'index', index, 'data', syncData, 'this is', this)
+      NAF.connection.sendDataGuaranteed(targetClientId, targetClientId, syncData);
+    } else if (targetClientId) {
+        NAF.connection.sendDataGuaranteed(targetClientId, 'u', syncData);
     } else {
-      NAF.connection.broadcastDataGuaranteed('u', syncData);
+        NAF.connection.broadcastDataGuaranteed('u', syncData);
     }
   },
 

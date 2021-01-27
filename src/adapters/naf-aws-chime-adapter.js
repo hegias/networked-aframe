@@ -14,6 +14,7 @@ class AwsChimeAdapter extends NafInterface {
     this.receivedUMMessagesCounter = 0;
     this.receivedSignalingMessagesCounter = 0;
     this.receivedRMessagesCounter = 0;
+    this.receivedPersonalMessagesCounter = 0;
   }
   /* Pre-Connect setup methods - Call before `connect` */
   setServerUrl(wsUrl) { 
@@ -270,6 +271,14 @@ class AwsChimeAdapter extends NafInterface {
       this.messageListener(this.name, 'r', parsedPayload)
       this.logsEnabled && this.dataMessageHandler(`RECEIVED r -${this.receivedRMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
+    this.audioVideo.realtimeSubscribeToReceiveDataMessage(this.myAttendeeId, (dataMessage) => {
+      this.totalReceivedMessagesCounter ++;
+      this.receivedPersonalMessagesCounter ++;
+      const parsedPayload = JSON.parse(dataMessage.text());
+      this.messageListener(this.name, parsedPayload.dataType, parsedPayload)
+      this.handlePersonalMessage(this.name,parsedPayload.dataType, parsedPayload);
+      this.logsEnabled && this.dataMessageHandler(`RECEIVED Personal ${parsedPayload.dataType} /${this.receivedPersonalMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
+    });
     if(this.isMaster){
       this.audioVideo.realtimeSubscribeToReceiveDataMessage('signaling', (dataMessage) => {
         this.totalReceivedMessagesCounter ++;
@@ -308,6 +317,10 @@ class AwsChimeAdapter extends NafInterface {
 
     this.logsEnabled && console.log('SPLITTED this.messages', this.messages)
     return this.messages;
+  }
+
+  handlePersonalMessage(name,dataType, parsedPayload){
+    this.logsEnabled && console.log('Received personal message,', dataType, 'index',parsedPayload.index, 'name', name, 'payload', parsedPayload)
   }
 
   handleSignal(parsedPayload){

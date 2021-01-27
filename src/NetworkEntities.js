@@ -144,14 +144,18 @@ class NetworkEntities {
   }
 
   completeSync(targetClientId, isFirstSync, force) {
-    console.log('1234  - NetworkEntities  - completeSync ');
-    for (var id in this.entities) {
-      console.log('1234  - completeSync  - current id', id);
-      if (this.entities[id]) {
-        console.log('1234  - completeSync  - syncing id', id, 'entity', this.entities[id]);
-        this.entities[id].components.networked.syncAll(targetClientId, isFirstSync, force);
+    console.log('1234  - NetworkEntities  - completeSync ', 'target client id', targetClientId);
+    // for (var id in this.entities) {
+    //   if (this.entities[id]) {
+    //     this.entities[id].components.networked.syncAll(targetClientId, isFirstSync, force);
+    //   }
+    // }
+    // HACK
+    Object.keys(this.entities).forEach((id, i)=>{
+      if(this.entities[id]){
+        this.entities[id].components.networked.syncAll(targetClientId, isFirstSync, force, i)
       }
-    }
+    })
     console.log('1234  - completeSync  FINISHED2');
   }
 
