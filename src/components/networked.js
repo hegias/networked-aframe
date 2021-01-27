@@ -242,6 +242,9 @@ AFRAME.registerComponent('networked', {
           return;
         }
         this.syncAll(undefined, true);
+        // HACK
+        var evt = new CustomEvent('onConnectedFinished');
+        document.body.dispatchEvent(evt);
       }, 0);
     }
 
