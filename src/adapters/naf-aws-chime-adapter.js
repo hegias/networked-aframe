@@ -340,6 +340,17 @@ class AwsChimeAdapter extends NafInterface {
   }
   handleEntitiesCountMessage(name,parsedPayload){
     this.logsEnabled && console.log('Received entitiesCount message, number is', parsedPayload.numberOfEntities, parsedPayload)
+    if(parsedPayload.numberOfEntities > Object.keys(NAF.connection.entities.entities).length){
+      this.logsEnabled && console.log('entitiesCount ', parsedPayload.numberOfEntities, 'is different from local', Object.keys(NAF.connection.entities.entities).length)
+      const syncAllSignal = {
+        attendeeId: this.myAttendeeId,
+        signal: "syncAll"
+      }
+      this.logsEnabled && console.log(new Date().toISOString(),  '1234 sending syncAll signal !', syncAllSignal)
+      this.sendData('signaling', syncAllSignal);
+    } else {
+      this.logsEnabled && console.log('entitiesCount ', parsedPayload.numberOfEntities, ' ===', Object.keys(NAF.connection.entities.entities).length)
+    }
   }
 
   handleSignal(parsedPayload){
@@ -361,8 +372,11 @@ class AwsChimeAdapter extends NafInterface {
           this.logsEnabled && console.log(new Date().toISOString(), '1234 received ready signal from', parsedPayload.attendeeId, 'but he was not waiting, he was', attendeeStatus  )
         }
         break;
-        default:
-          this.logsEnabled && console.log(new Date().toISOString(), '1234 received', parsedPayload.signal, 'signal from', parsedPayload.attendeeId, '. Signal is not handled')
+      case "syncAll"  :
+        this.openListener(parsedPayload.attendeeId);
+        break;
+      default:
+        this.logsEnabled && console.log(new Date().toISOString(), '1234 received', parsedPayload.signal, 'signal from', parsedPayload.attendeeId, '. Signal is not handled')
           //do stuff
     }
   }
