@@ -153,6 +153,8 @@ AFRAME.registerComponent('networked', {
     }
 
     document.body.dispatchEvent(this.entityCreatedEvent());
+    console.log('1234 EMIT ', `entityCreated-${this.el.id}`, this.el)
+    document.body.dispatchEvent(new CustomEvent(`entityCreated-${this.el.id}`, {detail: {el: this.el}}));
     this.el.dispatchEvent(new CustomEvent('instantiated', {detail: {el: this.el}}));
     this.el.sceneEl.systems.networked.register(this);
     // HACK add ready state
@@ -285,7 +287,6 @@ AFRAME.registerComponent('networked', {
   syncAll: function(targetClientId, isFirstSync, force=false, index) {
     console.log('1234 networked - syncAll', targetClientId, 'index', index, 'this is', this)
     if (!this.canSync() && !force) {
-      console.log('1234 CANNOT SYNC', this.el)
       return;
     }
 
@@ -295,7 +296,6 @@ AFRAME.registerComponent('networked', {
     if(index !== undefined && targetClientId){
       syncData.index = index
       syncData.dataType = 'u';
-      console.log('1234 sending syncAll to ', targetClientId, 'index', index, 'data', syncData, 'this is', this)
       NAF.connection.sendDataGuaranteed(targetClientId, targetClientId, syncData);
     } else if (targetClientId) {
         NAF.connection.sendDataGuaranteed(targetClientId, 'u', syncData);
@@ -539,7 +539,6 @@ AFRAME.registerComponent('networked', {
   },
 
   remove: function () {
-  console.log('1234  - NETWORKED');
     if (this.isMine() && NAF.connection.isConnected()) {
       var syncData = { networkId: this.data.networkId };
       if (NAF.entities.hasEntity(this.data.networkId)) {

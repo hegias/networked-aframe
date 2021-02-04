@@ -105,7 +105,6 @@ class NetworkEntities {
 
   createAndAppendChildren(parentId, parentEntity) {
     var children = this.childCache.getChildren(parentId);
-    console.log('1234  - createAndAppendChildren  - now creating children', children, 'of parent', parentId, parentEntity);
     for (var i = 0; i < children.length; i++) {
       var childEntityData = children[i];
       var childId = childEntityData.networkId;
@@ -161,7 +160,6 @@ class NetworkEntities {
       payload.numberOfEntities = Object.keys(this.entities).length;
       NAF.connection.sendDataGuaranteed(targetClientId, 'entitiesCount', payload);
     }
-    console.log('1234  - completeSync  FINISHED2');
   }
 
   removeRemoteEntity(toClient, dataType, data, source) {
