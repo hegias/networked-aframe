@@ -154,22 +154,27 @@ class AwsChimeAdapter extends NafInterface {
 
   audioVideoDidStart(){
     this.logsEnabled && console.log(new Date().toISOString(),  '1234 AUDIO VIDEO DID START !')
-
+    
     this.onConnectedFinished = this.onConnectedFinished.bind(this);
     document.body.addEventListener('onConnectedFinished', this.onConnectedFinished, {once:true});
+    if(!this.isMaster){
+      this.logsEnabled && console.log(new Date().toISOString(),  '1234 client going to send ', Object.keys(NAF.connection.entities.entities).length)
+      const incomingSignal = {
+        attendeeId: this.myAttendeeId,
+        signal: "incomingClientEntities",
+        entities: Object.keys(NAF.connection.entities.entities)
+      }
+      this.sendData('signaling', incomingSignal);
+    }
     this.connectSuccess(this.myAttendeeId);
   }
   
   onConnectedFinished(){
     this.setupCustomSignaling();
-    if(!this.isMaster){
-      const readySignal = {
-        attendeeId: this.myAttendeeId,
-        signal: "ready"
-      }
-      this.logsEnabled && console.log(new Date().toISOString(),  '1234 sending READY signal !', readySignal)
-      this.sendData('signaling', readySignal);
-    }
+    // if(!this.isMaster){
+    //   this.isReady = true;
+
+    // }
   }
   
   setupCustomSignaling() {
@@ -282,8 +287,11 @@ class AwsChimeAdapter extends NafInterface {
       this.totalReceivedMessagesCounter ++;
       this.receivedPersonalMessagesCounter ++;
       const parsedPayload = JSON.parse(dataMessage.text());
-      this.messageListener(this.name, parsedPayload.dataType, parsedPayload)
-      this.handlePersonalMessage(this.name,parsedPayload.dataType, parsedPayload);
+      if(parsedPayload.dataType === "personal"){
+        this.handlePersonalMessage(this.name,parsedPayload.dataType, parsedPayload);
+      } else {
+        this.messageListener(this.name, parsedPayload.dataType, parsedPayload)
+      }
       this.logsEnabled && this.dataMessageHandler(`RECEIVED Personal ${parsedPayload.dataType} /${this.receivedPersonalMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
     if(this.isMaster){
@@ -336,20 +344,33 @@ class AwsChimeAdapter extends NafInterface {
   }
 
   handlePersonalMessage(name,dataType, parsedPayload){
-    this.logsEnabled && console.log('Received personal message,', dataType, 'index',parsedPayload.index, 'name', name, 'payload', parsedPayload)
+    this.logsEnabled && console.log('Received personal message,', dataType, 'from', name, 'payload', parsedPayload)
+    switch(parsedPayload.message){
+      case "receivedAll": 
+        const readySignal = {
+          attendeeId: this.myAttendeeId,
+          signal: "ready"
+        }
+        this.logsEnabled && console.log(new Date().toISOString(),  '1234 answering receivedAll with sending READY signal !', readySignal)
+        this.sendData('signaling', readySignal);
+        break;
+      default:
+        // do stuff 
+        break;
+    }
   }
   handleEntitiesCountMessage(name,parsedPayload){
-    this.logsEnabled && console.log('Received entitiesCount message, number is', parsedPayload.numberOfEntities, parsedPayload)
+    this.logsEnabled && console.log('Received entitiesCount message, Master has', parsedPayload.numberOfEntities)
     if(parsedPayload.numberOfEntities > Object.keys(NAF.connection.entities.entities).length){
-      this.logsEnabled && console.log('entitiesCount ', parsedPayload.numberOfEntities, 'is different from local', Object.keys(NAF.connection.entities.entities).length)
+      this.logsEnabled && console.log('entitiesCount Master', parsedPayload.numberOfEntities, 'is different from local', Object.keys(NAF.connection.entities.entities).length)
       const syncAllSignal = {
         attendeeId: this.myAttendeeId,
         signal: "syncAll"
       }
-      this.logsEnabled && console.log(new Date().toISOString(),  '1234 sending syncAll signal !', syncAllSignal)
+      this.logsEnabled && console.log(new Date().toISOString(),  '1234 sending request syncAll signal !', syncAllSignal)
       this.sendData('signaling', syncAllSignal);
     } else {
-      this.logsEnabled && console.log('entitiesCount ', parsedPayload.numberOfEntities, ' ===', Object.keys(NAF.connection.entities.entities).length)
+      this.logsEnabled && console.log('entitiesCount Master', parsedPayload.numberOfEntities, ' === ', Object.keys(NAF.connection.entities.entities).length, ' Local')
     }
   }
 
@@ -362,11 +383,11 @@ class AwsChimeAdapter extends NafInterface {
       case "ready":
         // do stuff
         this.logsEnabled && console.log(new Date().toISOString(), '1234 received ready signal from', parsedPayload.attendeeId)
-        const attendeeStatus = this.waitingAttendeesForOpenListener[parsedPayload.attendeeId];
+        const attendeeStatus = this.waitingAttendeesForOpenListener[parsedPayload.attendeeId].status;
         if(attendeeStatus && attendeeStatus==="waiting" && parsedPayload.attendeeId !== this.myAttendeeId){
           this.logsEnabled && console.log(new Date().toISOString(), '1234 received ready signal from', parsedPayload.attendeeId, 'he was waiting. Proceed to send him updates')
           this.openListener(parsedPayload.attendeeId);
-          this.waitingAttendeesForOpenListener[parsedPayload.attendeeId] = "ready"
+          this.waitingAttendeesForOpenListener[parsedPayload.attendeeId].status = "ready"
           this.logsEnabled && console.log(new Date().toISOString(), '1234 all updates sent to', parsedPayload.attendeeId, 'transitioning to ready now')
         } else {
           this.logsEnabled && console.log(new Date().toISOString(), '1234 received ready signal from', parsedPayload.attendeeId, 'but he was not waiting, he was', attendeeStatus  )
@@ -374,6 +395,37 @@ class AwsChimeAdapter extends NafInterface {
         break;
       case "syncAll"  :
         this.openListener(parsedPayload.attendeeId);
+        break;
+      case "incomingClientEntities"  :
+        this.logsEnabled && console.log(new Date().toISOString(), '1234 Incoming Entities', parsedPayload.entities, 'FROM ', parsedPayload.attendeeId )
+        // store info for client's entity into an object
+        const entitiesFromClient = {}
+        parsedPayload.entities.forEach( (entity)=> {
+          // false means not instantiated yet
+          entitiesFromClient[entity] = false;
+          // when entity is created, come back here and set to true.
+          // also decrease counter, and if it's the last entity we are 
+          // waiting for, send the receivedAll to client
+          document.body.addEventListener(`entityCreated-naf-${entity}`, ()=>{
+            this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['incomingEntities'][entity] = true;
+            this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'] -= 1;
+            this.logsEnabled && console.log(new Date().toISOString(), '1234 received', `entityCreated-naf-${entity}`, 'remaining ', this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'])
+            if(this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'] === 0){
+              this.logsEnabled && console.log(new Date().toISOString(), '1234 reached 0 remaining entities for ', parsedPayload.attendeeId)
+              // send receivedAll to client
+              const receivedAllPersonalMessage = {
+                attendeeId: this.myAttendeeId,
+                dataType: "personal",
+                message: "receivedAll",
+              }
+              this.logsEnabled && console.log(new Date().toISOString(), '1234 sending personal receivedAll to', parsedPayload.attendeeId )
+              this.sendData(parsedPayload.attendeeId, receivedAllPersonalMessage);
+            }
+          }, {once:true})
+        })     
+        // store object in structure for waiting attendees, in the incomingEntities field
+        this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['incomingEntities'] = entitiesFromClient;
+        this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'] = parsedPayload.entities.length;        
         break;
       default:
         this.logsEnabled && console.log(new Date().toISOString(), '1234 received', parsedPayload.signal, 'signal from', parsedPayload.attendeeId, '. Signal is not handled')
@@ -486,7 +538,7 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
 
         if(attendeeId !== this.myAttendeeId && this.isMaster){
           this.logsEnabled && console.log(new Date().toISOString(),  '1234 adding attendee to queue. waiting for ready signal', attendeeId)
-          this.waitingAttendeesForOpenListener[attendeeId] = 'waiting';
+          this.waitingAttendeesForOpenListener[attendeeId] = {status: 'waiting'};
         }
         // this.openListener(attendeeId);
       }
