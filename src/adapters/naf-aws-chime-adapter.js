@@ -308,7 +308,7 @@ class AwsChimeAdapter extends NafInterface {
         this.receivedEntitiesCountMessagesCounter ++;
         const parsedPayload = JSON.parse(dataMessage.text());
         // this.messageListener(this.name, parsedPayload.dataType, parsedPayload)
-        this.handleEntitiesCountMessage(this.name, parsedPayload);
+        this.handleEntitiesCountMessage(parsedPayload);
         this.logsEnabled && this.dataMessageHandler(`RECEIVED EntitiesCount /${this.receivedEntitiesCountMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
       });
     }
@@ -354,13 +354,17 @@ class AwsChimeAdapter extends NafInterface {
         this.logsEnabled && console.log(new Date().toISOString(),  '1234 answering receivedAll with sending READY signal !', readySignal)
         this.sendData('signaling', readySignal);
         break;
+        case "entitiesCountPersonal":
+        this.logsEnabled && console.log(new Date().toISOString(),  '1234 handling entitiesCountPersonal')
+        this.handleEntitiesCountMessage(parsedPayload)
+        break;
       default:
         // do stuff 
         break;
     }
   }
-  handleEntitiesCountMessage(name,parsedPayload){
-    this.logsEnabled && console.log('Received entitiesCount message, Master has', parsedPayload.numberOfEntities)
+  handleEntitiesCountMessage(parsedPayload){
+    this.logsEnabled && console.log('Received entitiesCount message, Master has', parsedPayload.numberOfEntities, 'Local has', Object.keys(NAF.connection.entities.entities).length)
     if(parsedPayload.numberOfEntities > Object.keys(NAF.connection.entities.entities).length){
       this.logsEnabled && console.log('entitiesCount Master', parsedPayload.numberOfEntities, 'is different from local', Object.keys(NAF.connection.entities.entities).length)
       const syncAllSignal = {
@@ -371,6 +375,12 @@ class AwsChimeAdapter extends NafInterface {
       this.sendData('signaling', syncAllSignal);
     } else {
       this.logsEnabled && console.log('entitiesCount Master', parsedPayload.numberOfEntities, ' === ', Object.keys(NAF.connection.entities.entities).length, ' Local')
+      const countOkSignal = {
+        attendeeId: this.myAttendeeId,
+        signal: "countOk"
+      }
+      this.logsEnabled && console.log(new Date().toISOString(),  '1234 sending countOk signal !', countOkSignal)
+      this.sendData('signaling', countOkSignal);
     }
   }
 
@@ -394,7 +404,15 @@ class AwsChimeAdapter extends NafInterface {
         }
         break;
       case "syncAll"  :
+        this.logsEnabled && console.log(new Date().toISOString(), '1234 syncAll received from', parsedPayload.attendeeId)
+        // stop timer cause we received an answer to entitiesCount
+        this.stopTimer(parsedPayload.attendeeId);
+        // send all entities again
         this.openListener(parsedPayload.attendeeId);
+        break;
+      case "countOk"  :
+        this.logsEnabled && console.log(new Date().toISOString(), '1234 countOk received from', parsedPayload.attendeeId)
+        this.stopTimer(parsedPayload.attendeeId);
         break;
       case "incomingClientEntities"  :
         this.logsEnabled && console.log(new Date().toISOString(), '1234 Incoming Entities', parsedPayload.entities, 'FROM ', parsedPayload.attendeeId )
@@ -431,6 +449,33 @@ class AwsChimeAdapter extends NafInterface {
         this.logsEnabled && console.log(new Date().toISOString(), '1234 received', parsedPayload.signal, 'signal from', parsedPayload.attendeeId, '. Signal is not handled')
           //do stuff
     }
+  }
+
+  startAllTimers(){
+    for (const attendeeId in this.waitingAttendeesForOpenListener){
+      // stop previous timer if any
+      this.stopTimer(attendeeId);
+      // setup new one
+      this.logsEnabled && console.log(new Date().toISOString(), '1234 starting timer for', attendeeId)
+      const timer = setInterval( ()=>{
+        const countMessage = {
+          dataType : "personal",
+          message : "entitiesCountPersonal",
+          numberOfEntities : Object.keys(NAF.connection.entities.entities).length
+        }
+        this.logsEnabled && console.log(new Date().toISOString(), '1234 sending TIMED countMessage - in private', countMessage )
+        // sending a new request for entitiesCount but in private to only the non answering client
+        this.sendData(attendeeId, countMessage);
+      }, 10000)
+      this.waitingAttendeesForOpenListener[attendeeId]['timer'] = timer;
+    }
+  }
+  
+  stopTimer(attendeeId){
+    this.logsEnabled && console.log(new Date().toISOString(), '1234 stopping timer for', attendeeId)
+    let timer = this.waitingAttendeesForOpenListener[attendeeId].timer;
+    clearInterval(timer);
+    timer = null;
   }
 
   sendData(dataType, data) { 
@@ -517,8 +562,9 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
         this.closedListener(attendeeId);
         if(this.isMaster){
               // call endpoint to removeParticipant
-              this.logsEnabled && console.log(new Date().toISOString(),  '1234 on roster delete -> master manual leave for', attendeeId)
-              this.leaveMeeting(attendeeId)
+              this.logsEnabled && console.log(new Date().toISOString(),  '1234 on roster delete -> master manual leave for', attendeeId);
+              this.leaveMeeting(attendeeId);
+              delete this.waitingAttendeesForOpenListener[attendeeId];
         } else if (
           attendeeId === this.masterId 
           && Object.keys(this.roster)[0] === this.myAttendeeId

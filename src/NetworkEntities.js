@@ -158,7 +158,10 @@ class NetworkEntities {
     if(NAF.connection.adapter.isMaster){
       const payload = {}
       payload.numberOfEntities = Object.keys(this.entities).length;
+      // sending entitiesCount to all clients
       NAF.connection.sendDataGuaranteed(targetClientId, 'entitiesCount', payload);
+      // start timers to check for answer from each client
+      NAF.connection.adapter.startAllTimers();
     }
   }
 

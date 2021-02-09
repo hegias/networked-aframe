@@ -132,6 +132,7 @@ class NetworkConnection {
   dataChannelOpen(clientId) {
     NAF.log.write('Opened data channel from ' + clientId);
     this.activeDataChannels[clientId] = true;
+    // (clientId, isFirstSync, force)
     this.entities.completeSync(clientId, true, true);
 
     var evt = new CustomEvent('clientConnected', {detail: {clientId: clientId}});
