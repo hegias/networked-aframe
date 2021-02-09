@@ -399,6 +399,12 @@ class AwsChimeAdapter extends NafInterface {
           this.openListener(parsedPayload.attendeeId);
           this.waitingAttendeesForOpenListener[parsedPayload.attendeeId].status = "ready"
           this.logsEnabled && console.log(new Date().toISOString(), '1234 all updates sent to', parsedPayload.attendeeId, 'transitioning to ready now')
+          // sending entitiesCount to all clients
+          const entitiesCountMessage = {}
+          entitiesCountMessage.numberOfEntities = Object.keys(NAF.connection.entities.entities).length;
+          this.sendData('entitiesCount', entitiesCountMessage);
+          // start timers to check for answer from each client
+          this.startAllTimers();
         } else {
           this.logsEnabled && console.log(new Date().toISOString(), '1234 received ready signal from', parsedPayload.attendeeId, 'but he was not waiting, he was', attendeeStatus  )
         }
@@ -409,6 +415,17 @@ class AwsChimeAdapter extends NafInterface {
         this.stopTimer(parsedPayload.attendeeId);
         // send all entities again
         this.openListener(parsedPayload.attendeeId);
+        // sending personal entitiesCount to client requesting syncAll
+        const countMessage = {
+          dataType : "personal",
+          message : "entitiesCountPersonal",
+          numberOfEntities : Object.keys(NAF.connection.entities.entities).length
+        }
+        this.logsEnabled && console.log(new Date().toISOString(), '1234 sending personal countMessage after syncAll request', countMessage )
+        // sending a new request for entitiesCount but in private to only the non answering client
+        this.sendData(attendeeId, countMessage);
+        // start timer to check for answer from this client
+        this.startTimer(parsedPayload.attendeeId);
         break;
       case "countOk"  :
         this.logsEnabled && console.log(new Date().toISOString(), '1234 countOk received from', parsedPayload.attendeeId)
@@ -469,6 +486,24 @@ class AwsChimeAdapter extends NafInterface {
       }, 10000)
       this.waitingAttendeesForOpenListener[attendeeId]['timer'] = timer;
     }
+  }
+
+  startTimer(attendeeId){
+    // stop previous timer if any
+    this.stopTimer(attendeeId);
+    // setup new one
+    this.logsEnabled && console.log(new Date().toISOString(), '1234 starting timer for', attendeeId)
+    const timer = setInterval( ()=>{
+      const countMessage = {
+        dataType : "personal",
+        message : "entitiesCountPersonal",
+        numberOfEntities : Object.keys(NAF.connection.entities.entities).length
+      }
+      this.logsEnabled && console.log(new Date().toISOString(), '1234 sending TIMED countMessage - in private', countMessage )
+      // sending a new request for entitiesCount but in private to only the non answering client
+      this.sendData(attendeeId, countMessage);
+    }, 10000)
+    this.waitingAttendeesForOpenListener[attendeeId]['timer'] = timer;
   }
   
   stopTimer(attendeeId){
@@ -586,7 +621,6 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
           this.logsEnabled && console.log(new Date().toISOString(),  '1234 adding attendee to queue. waiting for ready signal', attendeeId)
           this.waitingAttendeesForOpenListener[attendeeId] = {status: 'waiting'};
         }
-        // this.openListener(attendeeId);
       }
       this.occupantListener(this.roster);
     };
