@@ -423,7 +423,7 @@ class AwsChimeAdapter extends NafInterface {
         }
         this.logsEnabled && console.log(new Date().toISOString(), '1234 sending personal countMessage after syncAll request', countMessage )
         // sending a new request for entitiesCount but in private to only the non answering client
-        this.sendData(attendeeId, countMessage);
+        this.sendData(parsedPayload.attendeeId, countMessage);
         // start timer to check for answer from this client
         this.startTimer(parsedPayload.attendeeId);
         break;
