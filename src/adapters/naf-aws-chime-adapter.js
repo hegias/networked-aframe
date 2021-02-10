@@ -508,7 +508,7 @@ class AwsChimeAdapter extends NafInterface {
   
   stopTimer(attendeeId){
     this.logsEnabled && console.log(new Date().toISOString(), '1234 stopping timer for', attendeeId)
-    let timer = this.waitingAttendeesForOpenListener[attendeeId].timer;
+    let timer = this.waitingAttendeesForOpenListener[attendeeId]?.timer;
     clearInterval(timer);
     timer = null;
   }
