@@ -508,9 +508,11 @@ class AwsChimeAdapter extends NafInterface {
   
   stopTimer(attendeeId){
     this.logsEnabled && console.log(new Date().toISOString(), '1234 stopping timer for', attendeeId)
-    let timer = this.waitingAttendeesForOpenListener[attendeeId]?.timer;
-    clearInterval(timer);
-    timer = null;
+    if(this.waitingAttendeesForOpenListener[attendeeId]){
+      let timer = this.waitingAttendeesForOpenListener[attendeeId].timer;
+      clearInterval(timer);
+      timer = null;
+    }
   }
 
   sendData(dataType, data) { 
@@ -599,6 +601,7 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
               // call endpoint to removeParticipant
               this.logsEnabled && console.log(new Date().toISOString(),  '1234 on roster delete -> master manual leave for', attendeeId);
               this.leaveMeeting(attendeeId);
+              this.stopTimer(attendeeId);
               delete this.waitingAttendeesForOpenListener[attendeeId];
         } else if (
           attendeeId === this.masterId 
