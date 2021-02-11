@@ -684,6 +684,9 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
     this.roster = {};
     this.participantList = {}; 
     this.isMaster = null;
+    for (const attendeeId in this.waitingAttendeesForOpenListener){
+      this.stopTimer(attendeeId);
+    }
     this.waitingAttendeesForOpenListener = {};
     this.audioVideoDidStartVariable = false;
     if(this.closedListener){
