@@ -493,17 +493,21 @@ class AwsChimeAdapter extends NafInterface {
     this.stopTimer(attendeeId);
     // setup new one
     this.logsEnabled && console.log(new Date().toISOString(), '1234 starting timer for', attendeeId)
-    const timer = setInterval( ()=>{
-      const countMessage = {
-        dataType : "personal",
-        message : "entitiesCountPersonal",
-        numberOfEntities : Object.keys(NAF.connection.entities.entities).length
-      }
-      this.logsEnabled && console.log(new Date().toISOString(), '1234 sending TIMED countMessage - in private', countMessage )
-      // sending a new request for entitiesCount but in private to only the non answering client
-      this.sendData(attendeeId, countMessage);
-    }, 10000)
-    this.waitingAttendeesForOpenListener[attendeeId]['timer'] = timer;
+    if(this.waitingAttendeesForOpenListener[attendeeId]){
+      const timer = setInterval( ()=>{
+        const countMessage = {
+          dataType : "personal",
+          message : "entitiesCountPersonal",
+          numberOfEntities : Object.keys(NAF.connection.entities.entities).length
+        }
+        this.logsEnabled && console.log(new Date().toISOString(), '1234 sending TIMED countMessage - in private', countMessage )
+        // sending a new request for entitiesCount but in private to only the non answering client
+        this.sendData(attendeeId, countMessage);
+      }, 10000)
+      this.waitingAttendeesForOpenListener[attendeeId]['timer'] = timer;
+    } else {
+      this.logsEnabled && console.log(new Date().toISOString(), '1234 tried to start timer for', attendeeId, 'but he was not in waiting list');
+    }
   }
   
   stopTimer(attendeeId){
