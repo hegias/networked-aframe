@@ -226,9 +226,15 @@ class AwsChimeAdapter extends NafInterface {
 
   async join() {
     this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> join -> join');
-    await this.openAudioInputFromSelection();
-    await this.openAudioOutputFromSelection();
-    this.audioVideo.start();
+    try {
+      await this.openAudioInputFromSelection();
+      await this.openAudioOutputFromSelection();
+      this.audioVideo.start();
+    } catch (error) {
+      this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> join -> error while fetching audio input or audio output', error);
+      NAF.log.error(error)
+      NAF.connection.disconnect();
+    }
   }
   
   async openAudioInputFromSelection() {
