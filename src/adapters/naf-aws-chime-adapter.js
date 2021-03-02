@@ -448,19 +448,21 @@ class AwsChimeAdapter extends NafInterface {
           // also decrease counter, and if it's the last entity we are 
           // waiting for, send the receivedAll to client
           document.body.addEventListener(`entityCreated-naf-${entity}`, ()=>{
-            this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['incomingEntities'][entity] = true;
-            this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'] -= 1;
-            this.logsEnabled && console.log(new Date().toISOString(), '1234 received', `entityCreated-naf-${entity}`, 'remaining ', this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'])
-            if(this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'] === 0){
-              this.logsEnabled && console.log(new Date().toISOString(), '1234 reached 0 remaining entities for ', parsedPayload.attendeeId)
-              // send receivedAll to client
-              const receivedAllPersonalMessage = {
-                attendeeId: this.myAttendeeId,
-                dataType: "personal",
-                message: "receivedAll",
+            if(this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]){
+              this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['incomingEntities'][entity] = true;
+              this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'] -= 1;
+              this.logsEnabled && console.log(new Date().toISOString(), '1234 received', `entityCreated-naf-${entity}`, 'remaining ', this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'])
+              if(this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'] === 0){
+                this.logsEnabled && console.log(new Date().toISOString(), '1234 reached 0 remaining entities for ', parsedPayload.attendeeId)
+                // send receivedAll to client
+                const receivedAllPersonalMessage = {
+                  attendeeId: this.myAttendeeId,
+                  dataType: "personal",
+                  message: "receivedAll",
+                }
+                this.logsEnabled && console.log(new Date().toISOString(), '1234 sending personal receivedAll to', parsedPayload.attendeeId )
+                this.sendData(parsedPayload.attendeeId, receivedAllPersonalMessage);
               }
-              this.logsEnabled && console.log(new Date().toISOString(), '1234 sending personal receivedAll to', parsedPayload.attendeeId )
-              this.sendData(parsedPayload.attendeeId, receivedAllPersonalMessage);
             }
           }, {once:true})
         })     
