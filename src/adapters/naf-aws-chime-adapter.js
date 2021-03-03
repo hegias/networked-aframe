@@ -161,7 +161,7 @@ class AwsChimeAdapter extends NafInterface {
       this.logsEnabled && console.log(new Date().toISOString(),  '1234 client going to send ', Object.keys(NAF.connection.entities.entities).length)
       const incomingSignal = {
         attendeeId: this.myAttendeeId,
-        signal: "incomingClientEntities",
+        subDataType: "incomingClientEntities",
         entities: Object.keys(NAF.connection.entities.entities)
       }
       this.sendData('signaling', incomingSignal);
@@ -293,12 +293,8 @@ class AwsChimeAdapter extends NafInterface {
       this.totalReceivedMessagesCounter ++;
       this.receivedPersonalMessagesCounter ++;
       const parsedPayload = JSON.parse(dataMessage.text());
-      if(parsedPayload.dataType === "personal"){
-        this.handlePersonalMessage(this.name,parsedPayload.dataType, parsedPayload);
-      } else {
-        this.messageListener(this.name, parsedPayload.dataType, parsedPayload)
-      }
-      this.logsEnabled && this.dataMessageHandler(`RECEIVED Personal ${parsedPayload.dataType} /${this.receivedPersonalMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
+      this.handlePersonalMessage(this.name, parsedPayload);
+      this.logsEnabled && this.dataMessageHandler(`RECEIVED Personal ${parsedPayload.subDataType} /${this.receivedPersonalMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
     if(this.isMaster){
       this.audioVideo.realtimeSubscribeToReceiveDataMessage('signaling', (dataMessage) => {
@@ -313,7 +309,6 @@ class AwsChimeAdapter extends NafInterface {
         this.totalReceivedMessagesCounter ++;
         this.receivedEntitiesCountMessagesCounter ++;
         const parsedPayload = JSON.parse(dataMessage.text());
-        // this.messageListener(this.name, parsedPayload.dataType, parsedPayload)
         this.handleEntitiesCountMessage(parsedPayload);
         this.logsEnabled && this.dataMessageHandler(`RECEIVED EntitiesCount /${this.receivedEntitiesCountMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
       });
@@ -349,13 +344,13 @@ class AwsChimeAdapter extends NafInterface {
     return this.messages;
   }
 
-  handlePersonalMessage(name,dataType, parsedPayload){
-    this.logsEnabled && console.log('Received personal message,', dataType, 'from', name, 'payload', parsedPayload)
-    switch(parsedPayload.message){
+  handlePersonalMessage(name, parsedPayload){
+    this.logsEnabled && console.log('Received personal message,', parsedPayload.subDataType, 'from', name, 'payload', parsedPayload)
+    switch(parsedPayload.subDataType){
       case "receivedAll": 
         const readySignal = {
           attendeeId: this.myAttendeeId,
-          signal: "ready"
+          subDataType: "ready"
         }
         this.logsEnabled && console.log(new Date().toISOString(),  '1234 answering receivedAll with sending READY signal !', readySignal)
         this.sendData('signaling', readySignal);
@@ -364,6 +359,11 @@ class AwsChimeAdapter extends NafInterface {
         this.logsEnabled && console.log(new Date().toISOString(),  '1234 handling entitiesCountPersonal')
         this.handleEntitiesCountMessage(parsedPayload)
         break;
+        case "u":
+        case "um":
+        case "r":
+          this.messageListener(this.name, parsedPayload.subDataType, parsedPayload)
+          break;
       default:
         // do stuff 
         break;
@@ -375,7 +375,7 @@ class AwsChimeAdapter extends NafInterface {
       this.logsEnabled && console.log('entitiesCount Master', parsedPayload.numberOfEntities, 'is different from local', Object.keys(NAF.connection.entities.entities).length)
       const syncAllSignal = {
         attendeeId: this.myAttendeeId,
-        signal: "syncAll"
+        subDataType: "syncAll"
       }
       this.logsEnabled && console.log(new Date().toISOString(),  '1234 sending request syncAll signal !', syncAllSignal)
       this.sendData('signaling', syncAllSignal);
@@ -383,7 +383,7 @@ class AwsChimeAdapter extends NafInterface {
       this.logsEnabled && console.log('entitiesCount Master', parsedPayload.numberOfEntities, ' === ', Object.keys(NAF.connection.entities.entities).length, ' Local')
       const countOkSignal = {
         attendeeId: this.myAttendeeId,
-        signal: "countOk"
+        subDataType: "countOk"
       }
       this.logsEnabled && console.log(new Date().toISOString(),  '1234 sending countOk signal !', countOkSignal)
       this.sendData('signaling', countOkSignal);
@@ -391,11 +391,11 @@ class AwsChimeAdapter extends NafInterface {
   }
 
   handleSignal(parsedPayload){
-    if (!parsedPayload.signal){
+    if (!parsedPayload.subDataType){
       return;
     }
 
-    switch (parsedPayload.signal){
+    switch (parsedPayload.subDataType){
       case "ready":
         // do stuff
         this.logsEnabled && console.log(new Date().toISOString(), '1234 received ready signal from', parsedPayload.attendeeId)
@@ -423,8 +423,7 @@ class AwsChimeAdapter extends NafInterface {
         this.openListener(parsedPayload.attendeeId);
         // sending personal entitiesCount to client requesting syncAll
         const countMessage = {
-          dataType : "personal",
-          message : "entitiesCountPersonal",
+          subDataType : "entitiesCountPersonal",
           numberOfEntities : Object.keys(NAF.connection.entities.entities).length
         }
         this.logsEnabled && console.log(new Date().toISOString(), '1234 sending personal countMessage after syncAll request', countMessage )
@@ -457,8 +456,7 @@ class AwsChimeAdapter extends NafInterface {
                 // send receivedAll to client
                 const receivedAllPersonalMessage = {
                   attendeeId: this.myAttendeeId,
-                  dataType: "personal",
-                  message: "receivedAll",
+                  subDataType: "receivedAll",
                 }
                 this.logsEnabled && console.log(new Date().toISOString(), '1234 sending personal receivedAll to', parsedPayload.attendeeId )
                 this.sendData(parsedPayload.attendeeId, receivedAllPersonalMessage);
@@ -471,7 +469,7 @@ class AwsChimeAdapter extends NafInterface {
         this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'] = parsedPayload.entities.length;        
         break;
       default:
-        this.logsEnabled && console.log(new Date().toISOString(), '1234 received', parsedPayload.signal, 'signal from', parsedPayload.attendeeId, '. Signal is not handled')
+        this.logsEnabled && console.log(new Date().toISOString(), '1234 received', parsedPayload.subDataType, 'signal from', parsedPayload.attendeeId, '. Signal is not handled')
           //do stuff
     }
   }
@@ -484,8 +482,7 @@ class AwsChimeAdapter extends NafInterface {
       this.logsEnabled && console.log(new Date().toISOString(), '1234 starting timer for', attendeeId)
       const timer = setInterval( ()=>{
         const countMessage = {
-          dataType : "personal",
-          message : "entitiesCountPersonal",
+          subDataType : "entitiesCountPersonal",
           numberOfEntities : Object.keys(NAF.connection.entities.entities).length
         }
         this.logsEnabled && console.log(new Date().toISOString(), '1234 sending TIMED countMessage - in private', countMessage )
@@ -504,8 +501,7 @@ class AwsChimeAdapter extends NafInterface {
     if(this.waitingAttendeesForOpenListener[attendeeId]){
       const timer = setInterval( ()=>{
         const countMessage = {
-          dataType : "personal",
-          message : "entitiesCountPersonal",
+          subDataType : "entitiesCountPersonal",
           numberOfEntities : Object.keys(NAF.connection.entities.entities).length
         }
         this.logsEnabled && console.log(new Date().toISOString(), '1234 sending TIMED countMessage - in private', countMessage )
