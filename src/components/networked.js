@@ -292,7 +292,8 @@ AFRAME.registerComponent('networked', {
 
     var components = this.gatherComponentsData(true);
 
-    var syncData = this.createSyncData(components, isFirstSync);
+    // var syncData = this.createSyncData(components, isFirstSync);
+    var syncData = {...this.createSyncData(components, isFirstSync)}
     if(index !== undefined && targetClientId){
       syncData.index = index
       syncData.subDataType = 'u';
