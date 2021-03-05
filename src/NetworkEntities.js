@@ -168,10 +168,12 @@ class NetworkEntities {
   removeRemoteEntity(toClient, dataType, data, source) {
     if (NAF.options.syncSource && source !== NAF.options.syncSource) return;
     var id = data.networkId;
+    console.log('1234  - NetworkEntities  - removeRemoteEntity', id);
     return this.removeEntity(id);
   }
 
   removeEntitiesOfClient(clientId) {
+    console.log('1234  - NetworkEntities  - removeEntitiesOfClient  - clientId', clientId);
     var entityList = [];
     for (var id in this.entities) {
       var entityCreator = NAF.utils.getCreator(this.entities[id]);
@@ -184,7 +186,8 @@ class NetworkEntities {
         if (component && component.persistent) {
           persists = NAF.utils.takeOwnership(this.entities[id]);
         }
-        if (!persists /* HACK */ && entityOwner !== NAF.clientId /* END HACK */) {
+        if (!persists /* HACK */ && entityOwner === clientId /* END HACK */) {
+          console.log('1234  - NetworkEntities  - removeEntitiesOfClient  - entityOwner ', entityOwner,'=== NAF.clientId', clientId);
           var entity = this.removeEntity(id);
           entityList.push(entity);
         }
@@ -195,11 +198,12 @@ class NetworkEntities {
 
   removeEntity(id) {
     this.forgetPersistentFirstSync(id);
-
+    
     if (this.hasEntity(id)) {
       var entity = this.entities[id];
       this.forgetEntity(id);
       entity.parentNode.removeChild(entity);
+      console.log('1234  - NetworkEntities  - removeEntity  - id', id);
       return entity;
     } else {
       NAF.log.error("Tried to remove entity I don't have.");
