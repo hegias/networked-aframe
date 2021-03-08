@@ -282,7 +282,7 @@ class AwsChimeAdapter extends NafInterface {
       this.receivedUMMessagesCounter ++;
       const parsedPayload = JSON.parse(dataMessage.text());
       this.messageListener(this.name, 'um', parsedPayload)
-      this.logsEnabled && this.dataMessageHandler(`RECEIVED um -${this.receivedUMMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
+      //this.logsEnabled && this.dataMessageHandler(`RECEIVED um -${this.receivedUMMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
     this.audioVideo.realtimeSubscribeToReceiveDataMessage('r', (dataMessage) => {
       this.totalReceivedMessagesCounter ++;
