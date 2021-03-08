@@ -16,6 +16,7 @@ class AwsChimeAdapter extends NafInterface {
     this.receivedRMessagesCounter = 0;
     this.receivedPersonalMessagesCounter = 0;
     this.receivedEntitiesCountMessagesCounter = 0;
+    this.isMuted = false;
   }
   /* Pre-Connect setup methods - Call before `connect` */
   setServerUrl(wsUrl) { 
@@ -128,7 +129,6 @@ class AwsChimeAdapter extends NafInterface {
 
         this.setupDataMessage();
         this.setupSubscribeToAttendeeIdPresenceHandler();
-
         await this.join();
       } catch (error) {
         NAF.log.error(error, error.message)
@@ -230,6 +230,8 @@ class AwsChimeAdapter extends NafInterface {
       await this.openAudioInputFromSelection();
       await this.openAudioOutputFromSelection();
       this.audioVideo.start();
+      // add keyshortcuts for debugging
+      this.logsEnabled && this.enableKeyDown();
     } catch (error) {
       this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> join -> error while fetching audio input or audio output', error);
       NAF.log.error(error)
@@ -653,6 +655,37 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
       return;
     }  
   }
+  enableKeyDown(){
+    this.onKeyDown = this.onKeyDown.bind(this)
+    document.body.addEventListener('keydown', this.onKeyDown);
+  }
+  disableKeyDown(){
+    document.body.removeEventListener('keydown', this.onKeyDown);
+  }
+
+  onKeyDown(ev){
+    this.logsEnabled && console.log('1234  - AwsChimeAdapter  - onKeyDown  - onKeyDown');
+    if(!this.logsEnabled){
+      return;
+    }
+    this.logsEnabled && console.log(new Date().toISOString(),  '1234 onkeydown', ev.key)
+    switch (ev.key) {
+      case 'm':
+        if(this.isMuted){
+          this.logsEnabled && console.log(new Date().toISOString(),  '1234 onkeydown M, unmute', )
+          this.audioVideo.realtimeUnmuteLocalAudio();
+          this.isMuted = false;
+        } else {
+          this.logsEnabled && console.log(new Date().toISOString(),  '1234 onkeydown M, mute', )
+          this.audioVideo.realtimeMuteLocalAudio();
+          this.isMuted = true;
+        }
+        break;
+    
+      default:
+        break;
+    }
+  }
   
   shouldStartConnectionTo(clientId) {return false}
   startStreamConnection(clientId) {}
@@ -700,6 +733,7 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
     if(this.closedListener){
       this.closedListener(this.myAttendeeId);
     }
+    document.body.removeEventListener('keydown', this.onKeyDown);
   }
   getServerTime() {  return new Date().getTime() }
 }
