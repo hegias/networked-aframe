@@ -18,6 +18,7 @@ class AwsChimeAdapter extends NafInterface {
     this.receivedEntitiesCountMessagesCounter = 0;
     this.isMuted = false;
     this.isReceiveUMEnabled = false;
+    this.isReceiveUEnabled = false;
   }
   /* Pre-Connect setup methods - Call before `connect` */
   setServerUrl(wsUrl) { 
@@ -271,13 +272,6 @@ class AwsChimeAdapter extends NafInterface {
   setupDataMessage() {
     this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> setupDataMessage');
     // declare an handler for each topic naf uses
-    this.audioVideo.realtimeSubscribeToReceiveDataMessage('u', (dataMessage) => {
-      this.totalReceivedMessagesCounter ++;
-      this.receivedUMessagesCounter ++;
-      const parsedPayload = JSON.parse(dataMessage.text());
-      this.messageListener(this.name, 'u', parsedPayload)
-      this.logsEnabled && this.dataMessageHandler(`RECEIVED u -${this.receivedUMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
-    });
     this.audioVideo.realtimeSubscribeToReceiveDataMessage('r', (dataMessage) => {
       this.totalReceivedMessagesCounter ++;
       this.receivedRMessagesCounter ++;
@@ -293,6 +287,7 @@ class AwsChimeAdapter extends NafInterface {
       this.logsEnabled && this.dataMessageHandler(`RECEIVED Personal ${parsedPayload.subDataType} /${this.receivedPersonalMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
     if(this.isMaster){
+      this.enableReceiveU();
       this.enableReceiveUM();
 
       this.audioVideo.realtimeSubscribeToReceiveDataMessage('signaling', (dataMessage) => {
@@ -321,6 +316,17 @@ class AwsChimeAdapter extends NafInterface {
       const parsedPayload = JSON.parse(dataMessage.text());
       this.messageListener(this.name, 'um', parsedPayload)
       //this.logsEnabled && this.dataMessageHandler(`RECEIVED um -${this.receivedUMMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
+    });
+  }
+  
+  enableReceiveU(){
+    this.logsEnabled && console.log(new Date().toISOString(),  '1234  - enableReceiveU ');
+    this.audioVideo.realtimeSubscribeToReceiveDataMessage('u', (dataMessage) => {
+      this.totalReceivedMessagesCounter ++;
+      this.receivedUMessagesCounter ++;
+      const parsedPayload = JSON.parse(dataMessage.text());
+      this.messageListener(this.name, 'u', parsedPayload)
+      this.logsEnabled && this.dataMessageHandler(`RECEIVED u -${this.receivedUMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
   }
 
@@ -398,7 +404,9 @@ class AwsChimeAdapter extends NafInterface {
       this.sendData('signaling', countOkSignal);
       if(!this.isReceiveUMEnabled){
         this.enableReceiveUM();
+        this.enableReceiveU();
         this.isReceiveUMEnabled = true;
+        this.isReceiveUEnabled = true;
       }
     }
   }
