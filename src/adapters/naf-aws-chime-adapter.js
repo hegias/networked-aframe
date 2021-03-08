@@ -160,14 +160,27 @@ class AwsChimeAdapter extends NafInterface {
     this.onConnectedFinished = this.onConnectedFinished.bind(this);
     document.body.addEventListener('onConnectedFinished', this.onConnectedFinished, {once:true});
     if(!this.isMaster){
-      this.logsEnabled && console.log(new Date().toISOString(),  '1234 client going to send ', Object.keys(NAF.connection.entities.entities).length)
-      const incomingSignal = {
-        attendeeId: this.myAttendeeId,
-        subDataType: "incomingClientEntities",
-        entities: Object.keys(NAF.connection.entities.entities)
+      if(this.isAccepted){
+        this.logsEnabled && console.log(new Date().toISOString(),  '1234 is Accepted!')
+        this.onIsAccepted();
+      } else {
+        this.logsEnabled && console.log(new Date().toISOString(),  '1234 is not Accepted yet. adding event listener')
+        this.onIsAccepted = this.onIsAccepted.bind(this);
+        document.body.addEventListener('isAccepted', this.onIsAccepted);
       }
-      this.sendData('signaling', incomingSignal);
+    } else {
+      this.connectSuccess(this.myAttendeeId);
     }
+  }
+  
+  onIsAccepted(){
+    this.logsEnabled && console.log(new Date().toISOString(),  '1234 onIsAccepted - client going to send ', Object.keys(NAF.connection.entities.entities).length)
+    const incomingSignal = {
+      attendeeId: this.myAttendeeId,
+      subDataType: "incomingClientEntities",
+      entities: Object.keys(NAF.connection.entities.entities)
+    }
+    this.sendData('signaling', incomingSignal);
     this.connectSuccess(this.myAttendeeId);
   }
   
@@ -378,6 +391,10 @@ class AwsChimeAdapter extends NafInterface {
         case "um":
         case "r":
           this.messageListener(this.name, parsedPayload.subDataType, parsedPayload)
+          break;
+        case "acceptClientEntities":
+          this.isAccepted = true;
+          document.body.dispatchEvent(new CustomEvent('isAccepted'));
           break;
       default:
         // do stuff 
@@ -652,6 +669,13 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
         if(attendeeId !== this.myAttendeeId && this.isMaster){
           this.logsEnabled && console.log(new Date().toISOString(),  '1234 adding attendee to queue. waiting for ready signal', attendeeId)
           this.waitingAttendeesForOpenListener[attendeeId] = {status: 'waiting'};
+          // send message to client telling him we are ready to receive his entities
+          const acceptClientEntitiesPersonalMessage = {
+            attendeeId: this.myAttendeeId,
+            subDataType: "acceptClientEntities",
+          }
+          this.logsEnabled && console.log(new Date().toISOString(), '1234 sending personal acceptClientEntities to', attendeeId )
+          this.sendData(attendeeId, acceptClientEntitiesPersonalMessage);
         }
       }
       this.occupantListener(this.roster);
@@ -683,11 +707,11 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
   }
 
   onKeyDown(ev){
-    this.logsEnabled && console.log('1234  - AwsChimeAdapter  - onKeyDown  - onKeyDown');
+    // this.logsEnabled && console.log('1234  - AwsChimeAdapter  - onKeyDown  - onKeyDown');
     if(!this.logsEnabled){
       return;
     }
-    this.logsEnabled && console.log(new Date().toISOString(),  '1234 onkeydown', ev.key)
+    // this.logsEnabled && console.log(new Date().toISOString(),  '1234 onkeydown', ev.key)
     switch (ev.key) {
       case 'm':
         if(this.isMuted){
@@ -753,6 +777,7 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
       this.closedListener(this.myAttendeeId);
     }
     document.body.removeEventListener('keydown', this.onKeyDown);
+    document.body.removeEventListener('isAccepted', this.onIsAccepted);
   }
   getServerTime() {  return new Date().getTime() }
 }
