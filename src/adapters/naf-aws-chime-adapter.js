@@ -17,6 +17,7 @@ class AwsChimeAdapter extends NafInterface {
     this.receivedPersonalMessagesCounter = 0;
     this.receivedEntitiesCountMessagesCounter = 0;
     this.isMuted = false;
+    this.isReceiveUMEnabled = false;
   }
   /* Pre-Connect setup methods - Call before `connect` */
   setServerUrl(wsUrl) { 
@@ -277,13 +278,6 @@ class AwsChimeAdapter extends NafInterface {
       this.messageListener(this.name, 'u', parsedPayload)
       this.logsEnabled && this.dataMessageHandler(`RECEIVED u -${this.receivedUMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
-    this.audioVideo.realtimeSubscribeToReceiveDataMessage('um', (dataMessage) => {
-      this.totalReceivedMessagesCounter ++;
-      this.receivedUMMessagesCounter ++;
-      const parsedPayload = JSON.parse(dataMessage.text());
-      this.messageListener(this.name, 'um', parsedPayload)
-      //this.logsEnabled && this.dataMessageHandler(`RECEIVED um -${this.receivedUMMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
-    });
     this.audioVideo.realtimeSubscribeToReceiveDataMessage('r', (dataMessage) => {
       this.totalReceivedMessagesCounter ++;
       this.receivedRMessagesCounter ++;
@@ -299,6 +293,8 @@ class AwsChimeAdapter extends NafInterface {
       this.logsEnabled && this.dataMessageHandler(`RECEIVED Personal ${parsedPayload.subDataType} /${this.receivedPersonalMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
     if(this.isMaster){
+      this.enableReceiveUM();
+
       this.audioVideo.realtimeSubscribeToReceiveDataMessage('signaling', (dataMessage) => {
         this.totalReceivedMessagesCounter ++;
         this.receivedSignalingMessagesCounter ++;
@@ -315,6 +311,17 @@ class AwsChimeAdapter extends NafInterface {
         this.logsEnabled && this.dataMessageHandler(`RECEIVED EntitiesCount /${this.receivedEntitiesCountMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
       });
     }
+  }
+
+  enableReceiveUM(){
+    this.logsEnabled && console.log(new Date().toISOString(),  '1234  - enableReceiveUM ');
+    this.audioVideo.realtimeSubscribeToReceiveDataMessage('um', (dataMessage) => {
+      this.totalReceivedMessagesCounter ++;
+      this.receivedUMMessagesCounter ++;
+      const parsedPayload = JSON.parse(dataMessage.text());
+      this.messageListener(this.name, 'um', parsedPayload)
+      //this.logsEnabled && this.dataMessageHandler(`RECEIVED um -${this.receivedUMMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
+    });
   }
 
   checkMessageSize(data){
@@ -389,6 +396,10 @@ class AwsChimeAdapter extends NafInterface {
       }
       this.logsEnabled && console.log(new Date().toISOString(),  '1234 sending countOk signal !', countOkSignal)
       this.sendData('signaling', countOkSignal);
+      if(!this.isReceiveUMEnabled){
+        this.enableReceiveUM();
+        this.isReceiveUMEnabled = true;
+      }
     }
   }
 
