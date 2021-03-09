@@ -768,6 +768,7 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
     this.roster = {};
     this.participantList = {}; 
     this.isMaster = null;
+    this.isAccepted = false;
     for (const attendeeId in this.waitingAttendeesForOpenListener){
       this.stopTimer(attendeeId);
     }
