@@ -19,6 +19,7 @@ class AwsChimeAdapter extends NafInterface {
     this.isMuted = false;
     this.isReceiveUMEnabled = false;
     this.isReceiveUEnabled = false;
+    this.isSendUMEnabled = false;
   }
   /* Pre-Connect setup methods - Call before `connect` */
   setServerUrl(wsUrl) { 
