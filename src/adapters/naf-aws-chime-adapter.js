@@ -174,6 +174,10 @@ class AwsChimeAdapter extends NafInterface {
   
   onConnectedFinished(){
     this.setupCustomSignaling();
+    if(this.isMaster){
+      this.logsEnabled && console.log(new Date().toISOString(),  '1234  - enableSendUM ');
+      this.isSendUMEnabled = true;
+    }
     // if(!this.isMaster){
     //   this.isReady = true;
 
@@ -420,6 +424,10 @@ class AwsChimeAdapter extends NafInterface {
         this.isReceiveUMEnabled = true;
         this.isReceiveUEnabled = true;
       }
+      if(!this.isSendUMEnabled){
+        this.logsEnabled && console.log(new Date().toISOString(),  '1234  - enableSendUM ');
+        this.isSendUMEnabled = true;
+      }
     }
   }
 
@@ -579,6 +587,10 @@ class AwsChimeAdapter extends NafInterface {
   sendData(dataType, data) { 
     // safety check in case audioVideo was not ready yet
     if(!this.audioVideo) {
+      return;
+    }
+    // avoid sending UM if handshaking is not finished yet
+    if(dataType === 'um' && !this.isSendUMEnabled){
       return;
     }
     new this.awsChime.AsyncScheduler().start(() => {
