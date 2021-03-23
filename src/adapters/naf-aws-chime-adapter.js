@@ -20,6 +20,7 @@ class AwsChimeAdapter extends NafInterface {
     this.isReceiveUMEnabled = false;
     this.isReceiveUEnabled = false;
     this.isSendUMEnabled = false;
+    this.receivedAcceptClientEntitiesAlready = false;
   }
   /* Pre-Connect setup methods - Call before `connect` */
   setServerUrl(wsUrl) { 
@@ -394,7 +395,15 @@ class AwsChimeAdapter extends NafInterface {
             entities: Object.keys(NAF.connection.entities.entities)
           }
           this.sendData('signaling', incomingSignal);
-          this.connectSuccess(this.myAttendeeId);
+          // if this is the first time we are asked for our entities, we do connectSuccess fully
+          if(!this.receivedAcceptClientEntitiesAlready){
+            this.connectSuccess(this.myAttendeeId);
+            this.receivedAcceptClientEntitiesAlready = true;
+          } else {
+            // if we already tried to send our entities but failed, we just resend them
+            // and don't do connectSuccess again
+            NAF.connection.entities.completeSync(undefined, true);
+          }
           break;
       default:
         // do stuff 
@@ -491,35 +500,68 @@ class AwsChimeAdapter extends NafInterface {
         break;
       case "incomingClientEntities"  :
         this.logsEnabled && console.log(new Date().toISOString(), '1234 Incoming Entities', parsedPayload.entities, 'FROM ', parsedPayload.attendeeId )
-        // store info for client's entity into an object
-        const entitiesFromClient = {}
-        parsedPayload.entities.forEach( (entity)=> {
-          // false means not instantiated yet
-          entitiesFromClient[entity] = false;
-          // when entity is created, come back here and set to true.
-          // also decrease counter, and if it's the last entity we are 
-          // waiting for, send the receivedAll to client
-          document.body.addEventListener(`entityCreated-naf-${entity}`, ()=>{
-            if(this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]){
-              this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['incomingEntities'][entity] = true;
-              this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'] -= 1;
-              this.logsEnabled && console.log(new Date().toISOString(), '1234 received', `entityCreated-naf-${entity}`, 'remaining ', this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'])
-              if(this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'] === 0){
-                this.logsEnabled && console.log(new Date().toISOString(), '1234 reached 0 remaining entities for ', parsedPayload.attendeeId)
-                // send receivedAll to client
-                const receivedAllPersonalMessage = {
-                  attendeeId: this.myAttendeeId,
-                  subDataType: "receivedAll",
+        var currentClient = this.waitingAttendeesForOpenListener[parsedPayload.attendeeId];
+        // if this is the first time the client is sending entities, we create all the timers for those entities
+        if(currentClient && currentClient.isFirstTimeSendingEntities === true){
+          currentClient.isFirstTimeSendingEntities = false;
+          // store info for client's entity into an object
+          const entitiesFromClient = {}
+          parsedPayload.entities.forEach( (entity)=> {
+            // false means not instantiated yet
+            entitiesFromClient[entity] = false;
+            // when entity is created, come back here and set to true.
+            // also decrease counter, and if it's the last entity we are 
+            // waiting for, send the receivedAll to client
+            document.body.addEventListener(`entityCreated-naf-${entity}`, ()=>{
+              if(currentClient){
+                currentClient['incomingEntities'][entity] = true;
+                currentClient['count'] -= 1;
+                this.logsEnabled && console.log(new Date().toISOString(), '1234 received', `entityCreated-naf-${entity}`, 'remaining ', currentClient['count'])
+                if(currentClient['count'] === 0){
+                  this.logsEnabled && console.log(new Date().toISOString(), '1234 reached 0 remaining entities for ', parsedPayload.attendeeId)
+                  // send receivedAll to client
+                  const receivedAllPersonalMessage = {
+                    attendeeId: this.myAttendeeId,
+                    subDataType: "receivedAll",
+                  }
+                  this.logsEnabled && console.log(new Date().toISOString(), '1234 sending personal receivedAll to', parsedPayload.attendeeId )
+                  this.sendData(parsedPayload.attendeeId, receivedAllPersonalMessage);
+                  var currentTimer = currentClient['incomingClientEntitiesTimer']
+                  this.logsEnabled && console.log(new Date().toISOString(), '1234 stopping timer incomingClientEntities for', parsedPayload.attendeeId);
+                  // we already reached 0, so just kill this timer
+                  clearInterval(currentTimer);
+                  currentTimer = null;
                 }
-                this.logsEnabled && console.log(new Date().toISOString(), '1234 sending personal receivedAll to', parsedPayload.attendeeId )
-                this.sendData(parsedPayload.attendeeId, receivedAllPersonalMessage);
               }
+            }, {once:true})
+          })   
+          // store object in structure for waiting attendees, in the incomingEntities field
+          currentClient['incomingEntities'] = entitiesFromClient;
+          currentClient['count'] = parsedPayload.entities.length; 
+          // setup a timer to check in 30secs if we have received and created all entities.
+          // if not, lets ask for those entities again
+          this.logsEnabled && console.log(new Date().toISOString(), '1234 setting a timer to check if received all entities of ', parsedPayload.attendeeId )
+          var timer = setInterval(()=>{
+            this.logsEnabled && console.log(new Date().toISOString(), 
+            '1234 30 secs have passed and ',currentClient['count'], 'entities are missing from', parsedPayload.attendeeId );
+            if(currentClient['count'] === 0){
+              this.logsEnabled && console.log(new Date().toISOString(), '1234 stopping timer incomingClientEntities for', parsedPayload.attendeeId);
+              // we already reached 0, so just kill this timer
+              clearInterval(timer);
+              timer = null;
+            } else {
+              this.logsEnabled && console.log(new Date().toISOString(), '1234 sending another acceptClientEntities to client', parsedPayload.attendeeId, 'because we missed some entities');
+              // this sends acceptClientEntities again, which will trigger
+              // incomingClientEntities from the client thus repeating the handshaking
+              this.onClientConnected(parsedPayload.attendeeId);
             }
-          }, {once:true})
-        })     
-        // store object in structure for waiting attendees, in the incomingEntities field
-        this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['incomingEntities'] = entitiesFromClient;
-        this.waitingAttendeesForOpenListener[parsedPayload.attendeeId]['count'] = parsedPayload.entities.length;        
+          }, 30000) 
+          currentClient['incomingClientEntitiesTimer'] = timer;     
+        } else {
+          // if this is not the first time, we don't do anything as entities will be processed by naf
+          // and all listeners on their creation are already set. the last of them will trigger
+          // the next step of the handshake i.e. receivedAll
+        }
         break;
       default:
         this.logsEnabled && console.log(new Date().toISOString(), '1234 received', parsedPayload.subDataType, 'signal from', parsedPayload.attendeeId, '. Signal is not handled')
@@ -697,6 +739,7 @@ dataMessageHandler(mode, dataMessage, parsedMessage) {
         if(attendeeId !== this.myAttendeeId && this.isMaster){
           this.logsEnabled && console.log(new Date().toISOString(),  '1234 adding attendee to queue. waiting for ready signal', attendeeId)
           this.waitingAttendeesForOpenListener[attendeeId] = {status: 'waiting'};    
+          this.waitingAttendeesForOpenListener[attendeeId]['isFirstTimeSendingEntities'] = true;
           document.body.dispatchEvent(new CustomEvent(`chimeClientConnected-${attendeeId}`));    
         }
       }
