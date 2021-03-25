@@ -332,6 +332,11 @@ class AwsChimeAdapter extends NafInterface {
       this.totalReceivedMessagesCounter ++;
       this.receivedUMessagesCounter ++;
       const parsedPayload = JSON.parse(dataMessage.text());
+      if(parsedPayload.networkId === this.entityToIgnoreOnce){
+        this.logsEnabled && this.dataMessageHandler('RECEIVED entity to ignore',parsedPayload.networkId, this.entityToIgnoreOnce, parsedPayload);
+        this.entityToIgnoreOnce = '';
+        return;
+      }
       this.messageListener(this.name, 'u', parsedPayload)
       this.logsEnabled && this.dataMessageHandler(`RECEIVED u -${this.receivedUMessagesCounter} out of ${this.totalReceivedMessagesCounter}`, dataMessage, parsedPayload);
     });
@@ -503,6 +508,7 @@ class AwsChimeAdapter extends NafInterface {
         var currentClient = this.waitingAttendeesForOpenListener[parsedPayload.attendeeId];
         // if this is the first time the client is sending entities, we create all the timers for those entities
         if(currentClient && currentClient.isFirstTimeSendingEntities === true){
+          this.entityToIgnoreOnce = parsedPayload.entities[0];
           currentClient.isFirstTimeSendingEntities = false;
           // store info for client's entity into an object
           const entitiesFromClient = {}
