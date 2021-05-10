@@ -20,13 +20,15 @@
     adapter: amazon-chime;
     connectOnLoad: false;
     app: hegias;
-    room: testfinalsupergreatroom1;
-    serverURL: https://0nid2zb4sj.execute-api.eu-central-1.amazonaws.com/Prod/;
-  ">
-<!--   <a-scene id="scene" networked-scene="
-  room: dev;
+    room: aincrad04;
+    serverURL: https://i74w67yfb7.execute-api.eu-central-1.amazonaws.com/Prod/;
+    signalingServerURL: localhost:8080;
+    name: awesomeME
+    ">
+  <!-- <a-scene id="scene" networked-scene="
   debug: true;
-  adapter: webrtc;
+  adapter: socketio;
+  serverURL: 77.57.61.190:5000;
 "> -->
       <a-assets>
 
@@ -37,7 +39,7 @@
 
         <!-- Avatar -->
         <template id="avatar-template">
-          <a-entity class="avatar">
+          <a-entity class="avatar" rotation>
             <a-sphere class="head"
               color="#ffffff"
               scale="0.45 0.5 0.4"
@@ -70,6 +72,9 @@
             </a-entity>
           </a-entity>
         </template>
+        <!-- <template id="box-template">
+          <a-box></a-box>
+        </template> -->
 
         <!-- /Templates -->
       </a-assets>
@@ -78,6 +83,7 @@
         networked="template:#avatar-template;attachTemplateToLocal:false;"
         camera
         position="0 1.6 0"
+        rotation
         spawn-in-circle="radius:3"
         wasd-controls look-controls
         >
@@ -121,6 +127,15 @@
           }
         ]
       });
+      // NAF.schemas.add({
+      //   template: '#box-template',
+      //   components: [
+      //     'position',
+      //     'rotation',
+      //     'material',
+      //     'isBeingUsed'
+      //   ]
+      // });
 
       // Called by Networked-Aframe when connected to server
       function onConnect () {
