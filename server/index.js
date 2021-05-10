@@ -31,26 +31,25 @@ const webServer = http.createServer(app);
 const io = require("socket.io")(webServer);
 var isFirstU = true;
 const rooms = {};
-const entities = {};
-const clients = {};
 io.on("connection", socket => {
   console.log("user connected", socket.id);
   
   let curRoom = 'default';
   socket.on("handshake", (callback) => {
-    console.log('handshake');
+    console.log('handshake, clients are',Object.keys(rooms[curRoom].occupants).length, rooms[curRoom].occupants );
     callback({
-      status: "ok handshake"
+      status: "ok handshake",
+      isFirst : Object.keys(rooms[curRoom].occupants).length === 1 // true if 1, false otherwise
     });
   });
 
   socket.on("r", data => {
-    console.log('1234  - r broadcast', data, curRoom);
+    // console.log('1234  - r broadcast', data, curRoom);
     socket.broadcast.to(curRoom).emit("um", data);
   });
   
   socket.on("um", data => {
-    console.log('1234  - um broadcast', data, curRoom);
+    // console.log('1234  - um broadcast', data, curRoom);
     socket.broadcast.to(curRoom).emit("um", data);
   });
 
@@ -67,7 +66,7 @@ io.on("connection", socket => {
     // } else if (payload.sending){
 
     // }
-    if(entities[payload.data.networkId]){
+    if(rooms[curRoom].entities[payload.data.networkId]){
       if(callback){
         callback({
           status: `ok u. already received entity ${payload.data.networkId}`
@@ -80,25 +79,33 @@ io.on("connection", socket => {
           status: `ok u ${payload.data.networkId}`
         });
       }
-      entities[payload.data.networkId] = payload.data;
-      clients[payload.from].entities.push(payload.data.networkId);
-      clients[payload.from].entitiesReceived++;
-      console.log('u for client', payload.from, 'received',  clients[payload.from].entitiesReceived, 'total', clients[payload.from].entitiesCount);
-      if(clients[payload.from].entitiesReceived ===  clients[payload.from].entitiesCount){
+      // TODO : if entity's owner/creator is master, do not add entity to current client's entities
+      rooms[curRoom].entities[payload.data.networkId] = payload.data;
+      if(payload.data.owner === payload.data.creator === 'master'){
+        if(!rooms[curRoom].clients[payload.from].entitiesForMaster){
+          rooms[curRoom].clients[payload.from].entitiesForMaster = [];
+        }
+        rooms[curRoom].clients[payload.from].entitiesForMaster.push(payload.data.networkId)
+      } else {
+        rooms[curRoom].clients[payload.from].entities.push(payload.data.networkId);
+      }
+      rooms[curRoom].clients[payload.from].entitiesReceived++;
+      console.log('u for client', payload.from, 'received',  rooms[curRoom].clients[payload.from].entitiesReceived, 'total', rooms[curRoom].clients[payload.from].entitiesCount);
+      if(rooms[curRoom].clients[payload.from].entitiesReceived ===  rooms[curRoom].clients[payload.from].entitiesCount){
         console.log('received all for', payload.from, 'sending entities');
-        io.to(payload.from).emit("entities", entities);
+        io.to(payload.from).emit("entities", rooms[curRoom].entities);
       }
     }
     socket.to(curRoom).broadcast.emit("u", payload);
   });
 
   socket.on("entitiesCount", (data, callback) =>{
-    clients[data.from] = {
+    rooms[curRoom].clients[data.from] = {
       entitiesCount : data.data.entitiesCount,
       entitiesReceived : 0,
       entities : [],
     }
-    console.log('1234 received entitiesCount ', data, data.data.entitiesCount, 'result', clients[data.from]);
+    console.log('1234 received entitiesCount ', data, data.data.entitiesCount, 'result', rooms[curRoom].clients[data.from]);
     callback({
       status: "ok entitiesCount"
     });
@@ -112,6 +119,8 @@ io.on("connection", socket => {
         name: room,
         occupants: {},
         wsUrl: wsUrl,
+        entities: {},
+        clients: {},
       };
     }
 
@@ -136,10 +145,6 @@ io.on("connection", socket => {
     console.log('1234  - broadcast', data, curRoom);
     socket.broadcast.to(curRoom).emit("broadcast", data);
   });
-  socket.on("setDisconnectCallback", () => {
-   
-
-  });
   socket.on("disconnect", async () => {
     console.log('disconnected: ', socket.id, curRoom);
     if (rooms[curRoom]) {
@@ -148,6 +153,15 @@ io.on("connection", socket => {
       delete rooms[curRoom].occupants[socket.id];
       const occupants = rooms[curRoom].occupants;
       socket.to(curRoom).broadcast.emit("occupantsChanged", { occupants });
+
+      console.log("client is leaving ",socket.id, rooms[curRoom].clients[socket.id]);
+      rooms[curRoom].clients[socket.id].entities.forEach((e)=>{
+        console.log("DELETING entity ",e);
+        delete rooms[curRoom].entities[e];
+      })
+      delete rooms[curRoom].clients[socket.id];
+      console.log("deleting client from clients list ", rooms[curRoom].clients);
+      console.log("entities are now", rooms[curRoom].entities);
 
       console.log("remaining occupants are", occupants);
       if (Object.keys(occupants).length === 0) {
@@ -160,14 +174,6 @@ io.on("connection", socket => {
         }
         delete rooms[curRoom];
       }
-      console.log("client is leaving ",socket.id, clients[socket.id]);
-      clients[socket.id].entities.forEach((e)=>{
-        console.log("DELETING entity ",e);
-        delete entities[e];
-      })
-      delete clients[socket.id];
-      console.log("deleting client from clients list ", clients);
-      console.log("entities are now", entities);
     }
 
   });

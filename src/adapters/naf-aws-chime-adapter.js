@@ -94,7 +94,6 @@ class AwsChimeAdapter extends NafInterface {
       });
       socket.emit('handshake', (response)=>{
         console.log('1234 RESPONSE', response)
-        this.masterSocketId = response.masterSocketId;
         document.body.dispatchEvent(new CustomEvent(`signalingConnected`, {detail: {isFirst: response.isFirst}}));
         document.body.addEventListener('handshakeReady', ()=>{
           console.log('1234 triggering handshakeReady', response)
@@ -140,7 +139,7 @@ class AwsChimeAdapter extends NafInterface {
 
   sendDataGuaranteed(to, type, data) {this.sendData(to, type, data)};
   sendData(to, type, data) {
-    console.log('1234 sendData', to, type, data);
+    // console.log('1234 sendData', to, type, data);
 
     const packet = {
       from: this.myId,
@@ -206,7 +205,7 @@ enableReceiveDataMessages(){
     const type = packet.type;
     const data = packet.data;
     this.messageListener(from, type, data);
-    console.log('1234 received data', packet)
+    // console.log('1234 received data', packet)
   }
   receiveData = receiveData.bind(this);
   
