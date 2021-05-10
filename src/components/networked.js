@@ -244,9 +244,6 @@ AFRAME.registerComponent('networked', {
           return;
         }
         this.syncAll(undefined, true);
-        // HACK
-        var evt = new CustomEvent('onConnectedFinished');
-        document.body.dispatchEvent(evt);
       }, 0);
     }
 
@@ -294,14 +291,10 @@ AFRAME.registerComponent('networked', {
 
     // var syncData = this.createSyncData(components, isFirstSync);
     var syncData = {...this.createSyncData(components, isFirstSync)}
-    if(index !== undefined && targetClientId){
-      syncData.index = index
-      syncData.subDataType = 'u';
-      NAF.connection.sendDataGuaranteed(targetClientId, targetClientId, syncData);
-    } else if (targetClientId) {
-        NAF.connection.sendDataGuaranteed(targetClientId, 'u', syncData);
+    if (targetClientId) {
+        NAF.connection.adapter.sendData(targetClientId, 'u', syncData);
     } else {
-        NAF.connection.broadcastDataGuaranteed('u', syncData);
+      NAF.connection.adapter.broadcastData('u', syncData);
     }
   },
 
