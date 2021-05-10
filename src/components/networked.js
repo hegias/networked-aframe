@@ -88,7 +88,8 @@ AFRAME.registerComponent('networked', {
 
     networkId: {default: ''},
     owner: {default: ''},
-    creator: {default: ''}
+    creator: {default: ''},
+    customOwner: {default: ''}
   },
 
   init: function() {
@@ -236,7 +237,11 @@ AFRAME.registerComponent('networked', {
     // HACK END
     if (this.data.owner === '') {
       this.lastOwnerTime = NAF.connection.getServerTime();
-      this.el.setAttribute(this.name, { owner: NAF.clientId, creator: NAF.clientId });
+      // HACK
+      var ownerAndCreator = this.data.customOwner !== '' ? this.data.customOwner : NAF.clientId;
+      this.el.setAttribute(this.name, { owner:ownerAndCreator, creator: ownerAndCreator });
+      // this.el.setAttribute(this.name, { owner: NAF.clientId, creator: NAF.clientId });
+      // HACK END
       setTimeout(() => {
         //a-primitives attach their components on the next frame; wait for components to be attached before calling syncAll
         if (!this.el.parentNode){
