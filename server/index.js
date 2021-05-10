@@ -2,7 +2,7 @@
 const http = require("http"); // http server core module
 const path = require("path");
 const express = require("express"); // web framework external module
-
+const fetch = require("node-fetch");
 // Set process name
 process.title = "networked-aframe-server";
 
@@ -29,21 +29,89 @@ if (process.env.NODE_ENV === "development") {
 // Start Express http server
 const webServer = http.createServer(app);
 const io = require("socket.io")(webServer);
-
+var isFirstU = true;
 const rooms = {};
-
+const entities = {};
+const clients = {};
 io.on("connection", socket => {
   console.log("user connected", socket.id);
+  
+  let curRoom = 'default';
+  socket.on("handshake", (callback) => {
+    console.log('handshake');
+    callback({
+      status: "ok handshake"
+    });
+  });
 
-  let curRoom = null;
+  socket.on("r", data => {
+    console.log('1234  - r broadcast', data, curRoom);
+    socket.broadcast.to(curRoom).emit("um", data);
+  });
+  
+  socket.on("um", data => {
+    console.log('1234  - um broadcast', data, curRoom);
+    socket.broadcast.to(curRoom).emit("um", data);
+  });
+
+  socket.on("u", (payload, callback) => {
+    console.log('u', payload);
+    // hack to test ack..
+    // if(isFirstU === true){
+    //   console.log('1234 isFirstU ignoring', payload.data.networkId)
+    //   isFirstU = false;
+    //   return;
+    // }
+    // if(payload.broadcasting){
+
+    // } else if (payload.sending){
+
+    // }
+    if(entities[payload.data.networkId]){
+      if(callback){
+        callback({
+          status: `ok u. already received entity ${payload.data.networkId}`
+        });
+      }
+      //update local entity list with new owner/data
+    } else {
+      if(callback){
+        callback({
+          status: `ok u ${payload.data.networkId}`
+        });
+      }
+      entities[payload.data.networkId] = payload.data;
+      clients[payload.from].entities.push(payload.data.networkId);
+      clients[payload.from].entitiesReceived++;
+      console.log('u for client', payload.from, 'received',  clients[payload.from].entitiesReceived, 'total', clients[payload.from].entitiesCount);
+      if(clients[payload.from].entitiesReceived ===  clients[payload.from].entitiesCount){
+        console.log('received all for', payload.from, 'sending entities');
+        io.to(payload.from).emit("entities", entities);
+      }
+    }
+    socket.to(curRoom).broadcast.emit("u", payload);
+  });
+
+  socket.on("entitiesCount", (data, callback) =>{
+    clients[data.from] = {
+      entitiesCount : data.data.entitiesCount,
+      entitiesReceived : 0,
+      entities : [],
+    }
+    console.log('1234 received entitiesCount ', data, data.data.entitiesCount, 'result', clients[data.from]);
+    callback({
+      status: "ok entitiesCount"
+    });
+  })
 
   socket.on("joinRoom", data => {
-    const { room } = data;
-
+    const { room, wsUrl } = data;
+    console.log('1234 joinRoom ', data);
     if (!rooms[room]) {
       rooms[room] = {
         name: room,
         occupants: {},
+        wsUrl: wsUrl,
       };
     }
 
@@ -59,15 +127,20 @@ io.on("connection", socket => {
     io.in(curRoom).emit("occupantsChanged", { occupants });
   });
 
+
   socket.on("send", data => {
     io.to(data.to).emit("send", data);
   });
 
   socket.on("broadcast", data => {
-    socket.to(curRoom).broadcast.emit("broadcast", data);
+    console.log('1234  - broadcast', data, curRoom);
+    socket.broadcast.to(curRoom).emit("broadcast", data);
   });
+  socket.on("setDisconnectCallback", () => {
+   
 
-  socket.on("disconnect", () => {
+  });
+  socket.on("disconnect", async () => {
     console.log('disconnected: ', socket.id, curRoom);
     if (rooms[curRoom]) {
       console.log("user disconnected", socket.id);
@@ -76,13 +149,36 @@ io.on("connection", socket => {
       const occupants = rooms[curRoom].occupants;
       socket.to(curRoom).broadcast.emit("occupantsChanged", { occupants });
 
-      if (occupants == {}) {
-        console.log("everybody left room");
+      console.log("remaining occupants are", occupants);
+      if (Object.keys(occupants).length === 0) {
+        console.log("everybody left room. call endMeetingCallback and delete room");
+        // end chime meeting
+        try {
+          await endMeetingCallback(rooms[curRoom].wsUrl, curRoom);
+        } catch (error) {
+          console.log('error ending meeting ', curRoom, error)
+        }
         delete rooms[curRoom];
       }
+      console.log("client is leaving ",socket.id, clients[socket.id]);
+      clients[socket.id].entities.forEach((e)=>{
+        console.log("DELETING entity ",e);
+        delete entities[e];
+      })
+      delete clients[socket.id];
+      console.log("deleting client from clients list ", clients);
+      console.log("entities are now", entities);
     }
+
   });
 });
+
+async function endMeetingCallback (wsUrl, room)  {
+  console.log('end chime meeting ', room)
+  await fetch(`${wsUrl}end?title=${encodeURIComponent(room)}`, {
+    method: 'POST',
+  });
+};
 
 webServer.listen(port, () => {
   console.log("listening on http://localhost:" + port);
