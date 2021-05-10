@@ -28,11 +28,12 @@ class NetworkConnection {
         = this.entities.removeRemoteEntity.bind(this.entities);
   }
 
-  connect(serverUrl, appName, roomName, enableAudio = false, name) {
+  connect(serverUrl, signalingServerURL, appName, roomName, enableAudio = false, name) {
     NAF.app = appName;
     NAF.room = roomName;
 
     this.adapter.setServerUrl(serverUrl);
+    this.adapter.setSignalingServerUrl(signalingServerURL);
     this.adapter.setApp(appName);
     this.adapter.setRoom(roomName);
     // HACK
@@ -168,7 +169,7 @@ class NetworkConnection {
         this.adapter.sendData(toClientId, dataType, data);
       }
     } else {
-      // console.error("NOT-CONNECTED", "not connected to " + toClient);
+      console.error("NOT-CONNECTED", "not connected to " + toClientId);
     }
   }
 
