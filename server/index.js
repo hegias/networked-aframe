@@ -28,7 +28,13 @@ if (process.env.NODE_ENV === "development") {
 
 // Start Express http server
 const webServer = http.createServer(app);
-const io = require("socket.io")(webServer);
+const io = require("socket.io")(webServer, {
+  cors: {
+    origin: "http://localhost:8080",
+    methods: ["GET", "POST"],
+  },
+  transports: ["websocket"],
+});
 var isFirstU = true;
 const rooms = {};
 io.on("connection", socket => {

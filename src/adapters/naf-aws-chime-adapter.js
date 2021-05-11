@@ -84,7 +84,7 @@ class AwsChimeAdapter extends NafInterface {
 
   connectSignaling() {
     this.logsEnabled && console.log(new Date().toISOString(),  '1234  - CONNECTING SIGNALING ');
-    const socket = this.socket = io(this.ssUrl);
+    const socket = this.socket = io(this.ssUrl, {'transports': ['websocket']});
     socket.on("connect", (response) => {
       NAF.log.write("User connected", socket.id);
       this.myId = socket.id;
