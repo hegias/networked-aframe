@@ -1,5 +1,6 @@
 var NafInterface = require('../NafInterface');
 const awsChime = require('amazon-chime-sdk-js');
+const io = require("socket.io-client");
 
 class AwsChimeAdapter extends NafInterface {
   constructor(){
@@ -112,10 +113,10 @@ class AwsChimeAdapter extends NafInterface {
             // it answers with the networked entities
           });
         });
-        // setTimeout(() => {
-        //   console.log('1234 emitting handshakeReady')
-        //   document.body.dispatchEvent(new CustomEvent(`handshakeReady`));
-        // }, 1000);
+        setTimeout(() => {
+          console.log('1234 emitting handshakeReady')
+          document.body.dispatchEvent(new CustomEvent(`handshakeReady`));
+        }, 1000);
       })
       
     });
@@ -130,10 +131,10 @@ class AwsChimeAdapter extends NafInterface {
         this.enableReceiveDataMessages();
       }, {once:true});
 
-      // setTimeout(() => {
-      //   console.log('1234 emitting localEntitiesDeleted')
-      //   document.body.dispatchEvent(new CustomEvent(`localEntitiesDeleted`));
-      // }, 1000);
+      setTimeout(() => {
+        console.log('1234 emitting localEntitiesDeleted')
+        document.body.dispatchEvent(new CustomEvent(`localEntitiesDeleted`));
+      }, 1000);
     });
   };
 
