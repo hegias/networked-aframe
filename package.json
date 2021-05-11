@@ -1,6 +1,6 @@
 {
   "name": "networked-aframe",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "A web framework for building multi-user virtual reality experiences.",
   "homepage": "",
   "main": "src/index.js",
@@ -30,7 +30,8 @@
     "babelify": "^10.0.0",
     "buffered-interpolation": "^0.2.5",
     "express": "^4.17.1",
-    "socket.io": "^2.3.0"
+    "socket.io": "^4.1.0",
+    "socket.io-client": "^4.1.0"
   },
   "devDependencies": {
     "@babel/core": "~7.8.3",
