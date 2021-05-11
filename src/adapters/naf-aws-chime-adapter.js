@@ -95,7 +95,6 @@ class AwsChimeAdapter extends NafInterface {
       });
       socket.emit('handshake', (response)=>{
         console.log('1234 RESPONSE', response)
-        document.body.dispatchEvent(new CustomEvent(`signalingConnected`, {detail: {isFirst: response.isFirst}}));
         document.body.addEventListener('handshakeReady', ()=>{
           console.log('1234 triggering handshakeReady', response)
           // send number of total entities
@@ -113,6 +112,7 @@ class AwsChimeAdapter extends NafInterface {
             // it answers with the networked entities
           });
         });
+        document.body.dispatchEvent(new CustomEvent(`signalingConnected`, {detail: {isFirst: response.isFirst}}));
         // setTimeout(() => {
         //   console.log('1234 emitting handshakeReady')
         //   document.body.dispatchEvent(new CustomEvent(`handshakeReady`));

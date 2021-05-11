@@ -159,16 +159,17 @@ io.on("connection", socket => {
       delete rooms[curRoom].occupants[socket.id];
       const occupants = rooms[curRoom].occupants;
       socket.to(curRoom).emit("occupantsChanged", { occupants });
+      if(rooms[curRoom].clients[socket.id]){
+        console.log("client is leaving ",socket.id, rooms[curRoom].clients[socket.id]);
+        rooms[curRoom].clients[socket.id].entities.forEach((e)=>{
+          console.log("DELETING entity ",e);
+          delete rooms[curRoom].entities[e];
+        })
+        delete rooms[curRoom].clients[socket.id];
+        console.log("deleting client from clients list ", rooms[curRoom].clients);
+        console.log("entities are now", rooms[curRoom].entities);
 
-      console.log("client is leaving ",socket.id, rooms[curRoom].clients[socket.id]);
-      rooms[curRoom].clients[socket.id].entities.forEach((e)=>{
-        console.log("DELETING entity ",e);
-        delete rooms[curRoom].entities[e];
-      })
-      delete rooms[curRoom].clients[socket.id];
-      console.log("deleting client from clients list ", rooms[curRoom].clients);
-      console.log("entities are now", rooms[curRoom].entities);
-
+      }
       console.log("remaining occupants are", occupants);
       if (Object.keys(occupants).length === 0) {
         console.log("everybody left room. call endMeetingCallback and delete room");
