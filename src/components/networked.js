@@ -45,16 +45,7 @@ AFRAME.registerSystem("networked", {
 
       for (let i = 0, l = this.components.length; i < l; i++) {
         const c = this.components[i];
-        // HACK
-        // if (!c.isMine()) continue;
-        if (!c.isMine()) {
-          if (NAF.clientId && c.el && c.el.components && this.master === NAF.clientId && c.el.getAttribute('isBeingUsed') === 'false') {
-            console.log('AFRAME was not mine. taking ownership of c', c, 'beingUsed is', c.el.getAttribute('isBeingUsed'))
-                      NAF.utils.takeOwnership(c.el)
-                  }
-          continue;
-        }
-        // HACK END
+        if (!c.isMine()) continue;
         if (!c.el.parentElement) {
           NAF.log.error("entity registered with system despite being removed");
           //TODO: Find out why tick is still being called
@@ -95,7 +86,7 @@ AFRAME.registerComponent('networked', {
   init: function() {
     // HACK add ready state
 		this.ready = false;
-    this.master = null;
+
     this.OWNERSHIP_GAINED = 'ownership-gained';
     this.OWNERSHIP_CHANGED = 'ownership-changed';
     this.OWNERSHIP_LOST = 'ownership-lost';
@@ -231,10 +222,6 @@ AFRAME.registerComponent('networked', {
   },
 
   onConnected: function() {
-    // HACK
-    this.master = NAF.connection.adapter.masterId;
-    document.getElementById('scene').systems['networked'].master = this.master;
-    // HACK END
     if (this.data.owner === '') {
       this.lastOwnerTime = NAF.connection.getServerTime();
       // HACK

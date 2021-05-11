@@ -124,13 +124,13 @@ class AwsChimeAdapter extends NafInterface {
     
     socket.on("entities", (entities)=>{
       console.log('1234 received entities', entities)
-      document.body.dispatchEvent(new CustomEvent(`handshakeEntitiesReceived`));
       
       document.body.addEventListener('localEntitiesDeleted', ()=>{
         this.parseReceivedEntities(entities);
         this.enableReceiveDataMessages();
       }, {once:true});
-
+      document.body.dispatchEvent(new CustomEvent(`handshakeEntitiesReceived`));
+      
       // setTimeout(() => {
       //   console.log('1234 emitting localEntitiesDeleted')
       //   document.body.dispatchEvent(new CustomEvent(`localEntitiesDeleted`));
@@ -287,8 +287,6 @@ parseReceivedEntities (entities) {
         this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> connect -> initializeMeetingSession done');
         
         this.onConnectResult = await this.onConnect();
-        this.isMaster = this.onConnectResult.IsMaster;
-        this.masterId = this.onConnectResult.MasterAttendeeId;
 
         this.setupSubscribeToAttendeeIdPresenceHandler();
         await this.join();

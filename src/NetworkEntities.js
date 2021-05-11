@@ -155,14 +155,6 @@ class NetworkEntities {
         this.entities[id].components.networked.syncAll(targetClientId, isFirstSync, force, i)
       }
     })
-    // if(NAF.connection.adapter.isMaster){
-      // const payload = {}
-      // payload.numberOfEntities = Object.keys(this.entities).length;
-      // // sending entitiesCount to all clients
-      // NAF.connection.sendDataGuaranteed(targetClientId, 'entitiesCount', payload);
-      // // start timers to check for answer from each client
-      // NAF.connection.adapter.startAllTimers();
-    // }
   }
 
   removeRemoteEntity(toClient, dataType, data, source) {
