@@ -45,12 +45,12 @@ io.on("connection", socket => {
 
   socket.on("r", data => {
     // console.log('1234  - r broadcast', data, curRoom);
-    socket.broadcast.to(curRoom).emit("um", data);
+    socket.to(curRoom).emit("um", data);
   });
   
   socket.on("um", data => {
     // console.log('1234  - um broadcast', data, curRoom);
-    socket.broadcast.to(curRoom).emit("um", data);
+    socket.to(curRoom).emit("um", data);
   });
 
   socket.on("u", (payload, callback) => {
@@ -96,7 +96,7 @@ io.on("connection", socket => {
         io.to(payload.from).emit("entities", rooms[curRoom].entities);
       }
     }
-    socket.to(curRoom).broadcast.emit("u", payload);
+    socket.to(curRoom).emit("u", payload);
   });
 
   socket.on("entitiesCount", (data, callback) =>{
@@ -143,7 +143,7 @@ io.on("connection", socket => {
 
   socket.on("broadcast", data => {
     console.log('1234  - broadcast', data, curRoom);
-    socket.broadcast.to(curRoom).emit("broadcast", data);
+    socket.to(curRoom).emit("broadcast", data);
   });
   socket.on("disconnect", async () => {
     console.log('disconnected: ', socket.id, curRoom);
@@ -152,7 +152,7 @@ io.on("connection", socket => {
 
       delete rooms[curRoom].occupants[socket.id];
       const occupants = rooms[curRoom].occupants;
-      socket.to(curRoom).broadcast.emit("occupantsChanged", { occupants });
+      socket.to(curRoom).emit("occupantsChanged", { occupants });
 
       console.log("client is leaving ",socket.id, rooms[curRoom].clients[socket.id]);
       rooms[curRoom].clients[socket.id].entities.forEach((e)=>{
