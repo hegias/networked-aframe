@@ -222,7 +222,7 @@ AFRAME.registerComponent('networked', {
   },
 
   onConnected: function() {
-    if (this.data.owner === '') {
+    if (this.data.owner === '' || this.data.customOwner === 'master' ) {
       this.lastOwnerTime = NAF.connection.getServerTime();
       // HACK
       var ownerAndCreator = this.data.customOwner !== '' ? this.data.customOwner : NAF.clientId;
@@ -235,7 +235,7 @@ AFRAME.registerComponent('networked', {
           NAF.log.warn("Networked element was removed before ever getting the chance to syncAll");
           return;
         }
-        this.syncAll(undefined, true);
+        this.syncAll(undefined, true, true);
       }, 0);
     }
 
