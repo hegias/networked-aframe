@@ -54,9 +54,17 @@ io.on("connection", socket => {
     socket.to(curRoom).emit("um", data);
   });
   
-  socket.on("um", data => {
-    // console.log('1234  - um broadcast', data, curRoom);
-    socket.to(curRoom).emit("um", data);
+  socket.on("um", payload => {
+    console.log('1234  - um broadcast', payload, curRoom, payload.data.d);
+    // update corresponding entity
+    payload.data.d.forEach( (currentEntity) => {
+      if(rooms[curRoom].entities[currentEntity.networkId]){
+        Object.entries(currentEntity.components).forEach((keyAndVal)=>{
+          rooms[curRoom].entities[currentEntity.networkId].components[keyAndVal[0]] = keyAndVal[1];
+        })
+      }
+    })
+    socket.to(curRoom).emit("um", payload);
   });
 
   socket.on("u", (payload, callback) => {
@@ -78,14 +86,13 @@ io.on("connection", socket => {
           status: `ok u. already received entity ${payload.data.networkId}`
         });
       }
-      //update local entity list with new owner/data
+      rooms[curRoom].entities[payload.data.networkId] = payload.data;
     } else {
       if(callback){
         callback({
           status: `ok u ${payload.data.networkId}`
         });
       }
-      // TODO : if entity's owner/creator is master, do not add entity to current client's entities
       rooms[curRoom].entities[payload.data.networkId] = payload.data;
       if(payload.data.owner === payload.data.creator === 'master'){
         if(!rooms[curRoom].clients[payload.from].entitiesForMaster){
@@ -95,6 +102,9 @@ io.on("connection", socket => {
       } else {
         rooms[curRoom].clients[payload.from].entities.push(payload.data.networkId);
       }
+      // TODO: execute the following only at handshake time (maybe different channel?)
+      // it does not break anything, but new creation of objects will increment entitiesReceived
+      // but not total. the emit("entities") wont happen
       rooms[curRoom].clients[payload.from].entitiesReceived++;
       console.log('u for client', payload.from, 'received',  rooms[curRoom].clients[payload.from].entitiesReceived, 'total', rooms[curRoom].clients[payload.from].entitiesCount);
       if(rooms[curRoom].clients[payload.from].entitiesReceived ===  rooms[curRoom].clients[payload.from].entitiesCount){
@@ -162,8 +172,12 @@ io.on("connection", socket => {
       if(rooms[curRoom].clients[socket.id]){
         console.log("client is leaving ",socket.id, rooms[curRoom].clients[socket.id]);
         rooms[curRoom].clients[socket.id].entities.forEach((e)=>{
-          console.log("DELETING entity ",e);
-          delete rooms[curRoom].entities[e];
+          if(!e.persistent){
+            console.log("DELETING entity ",e);
+            delete rooms[curRoom].entities[e];
+          } else {
+            console.log("NOT DELETING entity because persistent",e);
+          }
         })
         delete rooms[curRoom].clients[socket.id];
         console.log("deleting client from clients list ", rooms[curRoom].clients);
