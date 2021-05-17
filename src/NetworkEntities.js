@@ -91,7 +91,6 @@ class NetworkEntities {
         this.receiveFirstUpdateFromEntity(entityData);
       }
       // HACK END
-    }
   }
 
   receiveFirstUpdateFromEntity(entityData) {
