@@ -180,7 +180,7 @@ class NetworkEntities {
         const component = this.entities[id].getAttribute("networked")
         if (component && component.persistent) {
           // everyone will attempt to take ownership, someone will win, it does not particularly matter who
-          var result = NAF.utils.takeOwnership(entity);
+          var result = NAF.utils.takeOwnership(this.entities[id]);
           if (result){
             this.entities[id].setAttribute('isBeingUsed', 'false');
           }
