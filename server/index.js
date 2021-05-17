@@ -172,7 +172,7 @@ io.on("connection", socket => {
       if(rooms[curRoom].clients[socket.id]){
         console.log("client is leaving ",socket.id, rooms[curRoom].clients[socket.id]);
         rooms[curRoom].clients[socket.id].entities.forEach((e)=>{
-          if(!e.persistent){
+          if(!rooms[curRoom].entities[e].persistent){
             console.log("DELETING entity ",e);
             delete rooms[curRoom].entities[e];
           } else {
