@@ -73,22 +73,24 @@ class NetworkEntities {
 
     if (this.hasEntity(networkId)) {
       this.entities[networkId].components.networked.networkUpdate(entityData);
-    } else if (entityData.isFirstSync) {
+    } else /*if (entityData.isFirstSync) {
       if (NAF.options.firstSyncSource && source !== NAF.options.firstSyncSource) {
         NAF.log.write('Ignoring first sync from disallowed source', source);
       } else {
         // TODO REMOVE THIS!!!!!!!!
         // HACK
-    /*     if (entityData.persistent) {
+         if (entityData.persistent) {
           // If we receive a firstSync for a persistent entity that we don't have yet,
           // we assume the scene will create it at some point, so stash the update for later use.
           this._persistentFirstSyncs[networkId] = entityData;
         } else {
           this.receiveFirstUpdateFromEntity(entityData);
-        } */
+        } 
+      }*/
+      {
         this.receiveFirstUpdateFromEntity(entityData);
-        // HACK END
       }
+      // HACK END
     }
   }
 
