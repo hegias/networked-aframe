@@ -94,12 +94,14 @@ io.on("connection", socket => {
         });
       }
       rooms[curRoom].entities[payload.data.networkId] = payload.data;
-      if(payload.data.owner === payload.data.creator === 'master'){
+      if(payload.data.owner === 'master' && payload.data.creator === 'master'){
         if(!rooms[curRoom].clients[payload.from].entitiesForMaster){
           rooms[curRoom].clients[payload.from].entitiesForMaster = [];
         }
+        console.log('1234 u for client ', payload.from, 'adding entity ', payload.data.networkId, 'to entitiesForMaster')
         rooms[curRoom].clients[payload.from].entitiesForMaster.push(payload.data.networkId)
       } else {
+        console.log('1234 u for client ', payload.from, 'adding entity ', payload.data.networkId, 'to globalEntities', payload.data.owner, payload.data.creator)
         rooms[curRoom].clients[payload.from].entities.push(payload.data.networkId);
       }
       // TODO: execute the following only at handshake time (maybe different channel?)
