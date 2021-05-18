@@ -170,7 +170,7 @@ class AwsChimeAdapter extends NafInterface {
       NAF.log.warn('SocketIO socket not created yet');
     }
   }
-  broadcastDataGuaranteed(type, data){broadcastData(type, data)}
+  broadcastDataGuaranteed(type, data){this.broadcastData(type, data)}
   broadcastData(type, data) { 
     const packet = {
       from: this.myId,
