@@ -111,7 +111,7 @@ class AwsChimeAdapter extends NafInterface {
             // when BE received all entities from this client
             // it answers with the networked entities
           });
-        });
+        }, {once:true});
         document.body.dispatchEvent(new CustomEvent(`signalingConnected`, {detail: {isFirst: response.isFirst}}));
         // setTimeout(() => {
         //   console.log('1234 emitting handshakeReady')
