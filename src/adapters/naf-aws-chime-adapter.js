@@ -367,6 +367,11 @@ parseReceivedEntities (entities) {
     };
     customObserver.handleSignalingClientEvent = customObserver.handleSignalingClientEvent.bind(this);
     this.signalingClient.registerObserver(customObserver);
+
+    // implement onError and onClose socket's callbacks
+    this.websocket = this.audioVideo.audioVideoController._webSocketAdapter;
+    this.websocket.onerror = (ev) => {console.log('1234: AwsChimeAdapter -> webSocket onError', ev)}
+    this.websocket.onclose = (ev) => {console.log('1234: AwsChimeAdapter -> webSocket onClose', ev)}
   }
 
   async join() {
