@@ -176,21 +176,34 @@ class NetworkEntities {
       var entityCreator = NAF.utils.getCreator(this.entities[id]);
       // HACK
 			var entityOwner = this.entities[id].components.networked.data.owner;
-			// END HACK
-      if (entityCreator === clientId || (!entityCreator && entityOwner === clientId)) {
-        const component = this.entities[id].getAttribute("networked")
-        if (component && component.persistent) {
-          // everyone will attempt to take ownership, someone will win, it does not particularly matter who
-          var result = NAF.utils.takeOwnership(this.entities[id]);
-          if (result){
-            this.entities[id].setAttribute('isBeingUsed', 'false');
+      const component = this.entities[id].getAttribute("networked")
+		
+      if (entityOwner === clientId) {
+        if(entityCreator === clientId){
+          if(component && component.persistent){
+            // prop creato da chi se ne va, o il networkmaster, va salvato
+            var result = NAF.utils.takeOwnership(this.entities[id]);
+            if (result){
+              this.entities[id].setAttribute('isBeingUsed', 'false');
+            } 
+          } else {
+            // non è persistent
+            // è l'avatar e tutto ciò che va eliminato
+            console.log('1234  - NetworkEntities  - removeEntitiesOfClient  - entityOwner ', entityOwner,'=== NAF.clientId', clientId);
+            var entity = this.removeEntity(id);
+            entityList.push(entity);
           }
         } else {
-          console.log('1234  - NetworkEntities  - removeEntitiesOfClient  - entityOwner ', entityOwner,'=== NAF.clientId', clientId);
-          var entity = this.removeEntity(id);
-          entityList.push(entity);
+          // cose ownate da chi se ne va ma non create
+          // cose selezionate e possibly con beingused = true
+          // vanno salvate e ripristinato il beingUsed
+          var result2 = NAF.utils.takeOwnership(this.entities[id]);
+          if (result2){
+            this.entities[id].setAttribute('isBeingUsed', 'false');
+          } 
         }
-      }
+      }	
+      // END HACK
     }
     return entityList;
   }
