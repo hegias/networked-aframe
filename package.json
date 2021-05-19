@@ -1,6 +1,6 @@
 {
   "name": "networked-aframe",
-  "version": "2.0.13",
+  "version": "2.0.14",
   "description": "A web framework for building multi-user virtual reality experiences.",
   "homepage": "",
   "main": "src/index.js",
@@ -25,7 +25,7 @@
   },
   "repository": "networked-aframe/networked-aframe",
   "dependencies": {
-    "amazon-chime-sdk-js": "2.4.1",
+    "amazon-chime-sdk-js": "^2.9.0",
     "babel-preset-env": "^1.7.0",
     "babelify": "^10.0.0",
     "buffered-interpolation": "^0.2.5",
