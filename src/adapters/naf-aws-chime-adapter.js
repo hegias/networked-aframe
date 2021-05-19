@@ -247,6 +247,7 @@ parseReceivedEntities (entities) {
       warn: (data)=>{this.logsEnabled && console.log('log warn '+data)},
       error: (data)=>{this.logsEnabled && console.log('log error '+data)},
       debug: (data)=>{/* this.logsEnabled && console.log(new Date().toISOString(),  '1234 debug '+data()) */},
+      getLogLevel: ()=>{},
     }
     this.textDecoder = new TextDecoder();
 
@@ -390,9 +391,25 @@ parseReceivedEntities (entities) {
   }
   
   async openAudioInputFromSelection() {
+    this.listAudioInputDevices = await this.audioVideo.listAudioInputDevices();
     this.audioInput = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> openAudioInputFromSelection -> audioInput', this.audioInput);
-    await this.audioVideo.chooseAudioInputDevice(this.audioInput);
+    this.audioTracks = this.audioInput.getAudioTracks();
+    this.chosenAudioInput;
+    this.listAudioInputDevices.some((audioInputDevice)=>{
+      var found = this.audioTracks.some((audioTrack)=>{
+        if(audioTrack.getSettings().deviceId === audioInputDevice.deviceId){
+          this.chosenAudioInput = audioInputDevice;
+          return true;
+        }
+      })
+      if (found) {
+        return true;
+      }
+    })
+    this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> openAudioInputFromSelection -> chosenAudioInput', this.chosenAudioInput);
+    if(this.chosenAudioInput){
+      await this.audioVideo.chooseAudioInputDevice(this.chosenAudioInput);
+    }
   }
   
   async openAudioOutputFromSelection() {
