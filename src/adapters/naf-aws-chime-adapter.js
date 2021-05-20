@@ -371,8 +371,8 @@ parseReceivedEntities (entities) {
 
     // implement onError and onClose socket's callbacks
     this.websocket = this.audioVideo.audioVideoController._webSocketAdapter;
-    this.websocket.onerror = (ev) => {console.log('1234: AwsChimeAdapter -> webSocket onError', ev)}
-    this.websocket.onclose = (ev) => {console.log('1234: AwsChimeAdapter -> webSocket onClose', ev)}
+    this.websocket.connection.onerror = (ev) => {console.log('1234: AwsChimeAdapter -> webSocket onError', ev)}
+    this.websocket.connection.onclose = (ev) => {console.log('1234: AwsChimeAdapter -> webSocket onClose', ev)}
   }
 
   async join() {
@@ -395,9 +395,11 @@ parseReceivedEntities (entities) {
     this.audioInput = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     this.audioTracks = this.audioInput.getAudioTracks();
     this.chosenAudioInput;
+    this.chosenAudioTrack;
     this.listAudioInputDevices.some((audioInputDevice)=>{
       var found = this.audioTracks.some((audioTrack)=>{
         if(audioTrack.getSettings().deviceId === audioInputDevice.deviceId){
+          this.chosenAudioTrack = audioTrack;
           this.chosenAudioInput = audioInputDevice;
           return true;
         }
@@ -548,7 +550,7 @@ parseReceivedEntities (entities) {
     await this.leaveMeeting(this.myAttendeeId);
     console.log('1234 EMITTING DISCONNECT for socket');
     this.socket.disconnect();
-    this.close(); 
+    await this.close(); 
   }
 
   async leaveMeeting(leavingAttendeeId) {
@@ -563,10 +565,22 @@ parseReceivedEntities (entities) {
     });
   }
 
-  close() {
+  async close() {
     if(this.audioVideo){
+      await this.audioVideo.chooseAudioInputDevice(null);
       this.audioVideo.stop();
     }
+    this.chosenAudioTrack.enabled = false;
+    // this.audioVideo.chooseAudioOutputDevice(null);
+    // this.audioVideo.chooseVideoInputDevice(null);
+    // this.audioVideo.stopLocalVideoTile();
+    // this.audioVideo.unbindAudioElement();
+    // this.audioVideo.deviceController.releaseActiveDevice(this.audioVideo.deviceController.activeDevices["audio"]);
+    this.audioVideo = null;
+    this.listAudioInputDevices = null;
+    this.audioInput = null;
+    this.audioTracks = null;
+    this.chosenAudioInput = null;
     this.roster = {};
     this.participantList = {}; 
     this.isAccepted = false;
