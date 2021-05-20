@@ -391,11 +391,16 @@ parseReceivedEntities (entities) {
   }
   
   async openAudioInputFromSelection() {
-    this.listAudioInputDevices = await this.audioVideo.listAudioInputDevices();
+    // calling getUserMedia first, will populate the device labels
+    // so that listAudioInputDevices won't try to fetch them, making the webcam flash
     this.audioInput = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    this.listAudioInputDevices = await this.audioVideo.listAudioInputDevices();
     this.audioTracks = this.audioInput.getAudioTracks();
     this.chosenAudioInput;
     this.chosenAudioTrack;
+    // we need to match the chosen audioInput from browser's permission UI
+    // with the one in the AudioInputDevices, because chooseAudioInput accepts
+    // only the latter.
     this.listAudioInputDevices.some((audioInputDevice)=>{
       var found = this.audioTracks.some((audioTrack)=>{
         if(audioTrack.getSettings().deviceId === audioInputDevice.deviceId){
