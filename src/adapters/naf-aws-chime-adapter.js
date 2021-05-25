@@ -378,7 +378,6 @@ parseReceivedEntities (entities) {
   async join() {
     this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> join -> join');
     try {
-      this.setupDeviceLabelTrigger();
       await this.openAudioInputFromSelection();
       await this.openAudioOutputFromSelection();
       this.audioVideo.start();
@@ -390,33 +389,22 @@ parseReceivedEntities (entities) {
       NAF.connection.disconnect();
     }
   }
-
-  setupDeviceLabelTrigger() {
-    this.chosenAudioInput;
-    this.audioVideo.setDeviceLabelTrigger(
-      async () => {
-        // custom trigger, with video false to not blink the webcam
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        this.chosenAudioInput = stream;
-        // settings and id are wiped out by chime after calling this trigger.
-        // we keep track of them here for later matching
-        this.chosenAudioInputId = this.chosenAudioInput.getAudioTracks()[0].getSettings().deviceId;
-        if(this.chosenAudioInput.getAudioTracks().length > 1){
-          console.log('1234 warning: stream has more than one audio track', this.chosenAudioInput, this.chosenAudioInput.getAudioTracks());
-        }
-        return stream;
-      }
-    );
-  }
   
   async openAudioInputFromSelection() {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    this.chosenAudioInput = stream;
+
+    this.chosenAudioTrack = this.chosenAudioInput.getAudioTracks()[0]
+    this.chosenAudioInputId = this.chosenAudioTrack.getSettings().deviceId;
+    if(this.chosenAudioInput.getAudioTracks().length > 1){
+      console.log('1234 warning: stream has more than one audio track', this.chosenAudioInput, this.chosenAudioInput.getAudioTracks());
+    }
     // listAudioInputDevices calls deviceLabelTrigger first to populate the device labels.
-    // our custom trigger, set up with setupDeviceLabelTrigger, will also keep track of
-    // the chosen stream and its id.
+    // but we have populated them manually with getUserMedia so it wont trigger.
+    // we also kept trace of what the user chose.
     this.listAudioInputDevices = await this.audioVideo.listAudioInputDevices();
     if(!this.chosenAudioInput || !this.chosenAudioInputId){
       console.log('1234 no chosenAudioInput or id')
-      return;
     }
     this.chosenAudioInputIndex;
     // we need to match the chosen audioInput from browser's permission UI
@@ -437,7 +425,8 @@ parseReceivedEntities (entities) {
   
   async openAudioOutputFromSelection() {
     this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> openAudioOutputFromSelection');
-    await this.audioVideo.chooseAudioOutputDevice(this.audioInput);
+    // this is useless
+    // await this.audioVideo.chooseAudioOutputDevice(this.audioInput);
     const audioMix = document.getElementById('meeting-audio');
     await this.audioVideo.bindAudioElement(audioMix);
   }
@@ -591,10 +580,11 @@ parseReceivedEntities (entities) {
       await this.audioVideo.chooseAudioInputDevice(null);
       this.audioVideo.stop();
     }
+    // manual release of audio track because chime *****
+    this.chosenAudioTrack.enabled = false;
+    this.chosenAudioTrack = null;
     this.audioVideo = null;
     this.listAudioInputDevices = null;
-    this.audioInput = null;
-    this.audioTracks = null;
     this.chosenAudioInput = null;
     this.roster = {};
     this.participantList = {}; 
