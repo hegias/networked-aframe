@@ -378,6 +378,7 @@ parseReceivedEntities (entities) {
   async join() {
     this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> join -> join');
     try {
+      this.setupDeviceLabelTrigger();
       await this.openAudioInputFromSelection();
       await this.openAudioOutputFromSelection();
       this.audioVideo.start();
@@ -389,33 +390,48 @@ parseReceivedEntities (entities) {
       NAF.connection.disconnect();
     }
   }
+
+  setupDeviceLabelTrigger() {
+    this.chosenAudioInput;
+    this.audioVideo.setDeviceLabelTrigger(
+      async () => {
+        // custom trigger, with video false to not blink the webcam
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        this.chosenAudioInput = stream;
+        // settings and id are wiped out by chime after calling this trigger.
+        // we keep track of them here for later matching
+        this.chosenAudioInputId = this.chosenAudioInput.getAudioTracks()[0].getSettings().deviceId;
+        if(this.chosenAudioInput.getAudioTracks().length > 1){
+          console.log('1234 warning: stream has more than one audio track', this.chosenAudioInput, this.chosenAudioInput.getAudioTracks());
+        }
+        return stream;
+      }
+    );
+  }
   
   async openAudioInputFromSelection() {
-    // calling getUserMedia first, will populate the device labels
-    // so that listAudioInputDevices won't try to fetch them, making the webcam flash
-    this.audioInput = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    // listAudioInputDevices calls deviceLabelTrigger first to populate the device labels.
+    // our custom trigger, set up with setupDeviceLabelTrigger, will also keep track of
+    // the chosen stream and its id.
     this.listAudioInputDevices = await this.audioVideo.listAudioInputDevices();
-    this.audioTracks = this.audioInput.getAudioTracks();
-    this.chosenAudioInput;
-    this.chosenAudioTrack;
+    if(!this.chosenAudioInput || !this.chosenAudioInputId){
+      console.log('1234 no chosenAudioInput or id')
+      return;
+    }
+    this.chosenAudioInputIndex;
     // we need to match the chosen audioInput from browser's permission UI
     // with the one in the AudioInputDevices, because chooseAudioInput accepts
     // only the latter.
-    this.listAudioInputDevices.some((audioInputDevice)=>{
-      var found = this.audioTracks.some((audioTrack)=>{
-        if(audioTrack.getSettings().deviceId === audioInputDevice.deviceId){
-          this.chosenAudioTrack = audioTrack;
-          this.chosenAudioInput = audioInputDevice;
-          return true;
-        }
-      })
-      if (found) {
+    this.listAudioInputDevices.some((audioInputDevice, audioInputDeviceIndex)=>{
+      if(this.chosenAudioInputId === audioInputDevice.deviceId){
+        this.chosenAudioInputIndex = audioInputDeviceIndex;
         return true;
       }
+      return false;
     })
-    this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> openAudioInputFromSelection -> chosenAudioInput', this.chosenAudioInput);
-    if(this.chosenAudioInput){
-      await this.audioVideo.chooseAudioInputDevice(this.chosenAudioInput);
+    this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> openAudioInputFromSelection -> chosenAudioInput', this.listAudioInputDevices[this.chosenAudioInputIndex]);
+    if(this.chosenAudioInputIndex !== undefined){
+      await this.audioVideo.chooseAudioInputDevice(this.listAudioInputDevices[this.chosenAudioInputIndex]);
     }
   }
   
@@ -575,12 +591,6 @@ parseReceivedEntities (entities) {
       await this.audioVideo.chooseAudioInputDevice(null);
       this.audioVideo.stop();
     }
-    this.chosenAudioTrack.enabled = false;
-    // this.audioVideo.chooseAudioOutputDevice(null);
-    // this.audioVideo.chooseVideoInputDevice(null);
-    // this.audioVideo.stopLocalVideoTile();
-    // this.audioVideo.unbindAudioElement();
-    // this.audioVideo.deviceController.releaseActiveDevice(this.audioVideo.deviceController.activeDevices["audio"]);
     this.audioVideo = null;
     this.listAudioInputDevices = null;
     this.audioInput = null;
