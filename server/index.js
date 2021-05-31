@@ -51,7 +51,7 @@ io.on("connection", socket => {
 
   socket.on("r", data => {
     // console.log('1234  - r broadcast', data, curRoom);
-    socket.to(curRoom).emit("um", data);
+    socket.to(curRoom).emit("r", data);
   });
   
   socket.on("um", payload => {
