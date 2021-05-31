@@ -88,36 +88,40 @@ class AwsChimeAdapter extends NafInterface {
     socket.on("connect", (response) => {
       NAF.log.write("User connected", socket.id);
       this.myId = socket.id;
+      socket.on("joinRoomSuccess", (response)=>{
+        console.log('1234 joinRoomSuccess RESPONSE', response)
+
+        socket.emit('handshake', (response)=>{
+          console.log('1234 RESPONSE', response)
+          document.body.addEventListener('handshakeReady', ()=>{
+            console.log('1234 triggering handshakeReady', response)
+            // send number of total entities
+            const packet = {
+              from: this.myId,
+              data: {entitiesCount: Object.keys(NAF.connection.entities.entities).length},
+            };
+            socket.emit('entitiesCount', packet, (response)=>{
+              console.log('1234 entitiesCount', response)
+              // BE will keep trace of entities received per each client
+              // connectSuccess sends u messages, we will implement acks there
+              // such that client resends u if BE did not acknowledged it
+              this.connectSuccess(this.myAttendeeId);
+              // when BE received all entities from this client
+              // it answers with the networked entities
+            });
+          }, {once:true});
+          document.body.dispatchEvent(new CustomEvent(`signalingConnected`, {detail: {isFirst: response.isFirst}}));
+          // setTimeout(() => {
+          //   console.log('1234 emitting handshakeReady')
+          //   document.body.dispatchEvent(new CustomEvent(`handshakeReady`));
+          // }, 1000);
+        })
+      })
       this.socket.emit("joinRoom", 
       {  
         room: this.room, 
         wsUrl: this.wsUrl,
       });
-      socket.emit('handshake', (response)=>{
-        console.log('1234 RESPONSE', response)
-        document.body.addEventListener('handshakeReady', ()=>{
-          console.log('1234 triggering handshakeReady', response)
-          // send number of total entities
-          const packet = {
-            from: this.myId,
-            data: {entitiesCount: Object.keys(NAF.connection.entities.entities).length},
-          };
-          socket.emit('entitiesCount', packet, (response)=>{
-            console.log('1234 entitiesCount', response)
-            // BE will keep trace of entities received per each client
-            // connectSuccess sends u messages, we will implement acks there
-            // such that client resends u if BE did not acknowledged it
-            this.connectSuccess(this.myAttendeeId);
-            // when BE received all entities from this client
-            // it answers with the networked entities
-          });
-        }, {once:true});
-        document.body.dispatchEvent(new CustomEvent(`signalingConnected`, {detail: {isFirst: response.isFirst}}));
-        // setTimeout(() => {
-        //   console.log('1234 emitting handshakeReady')
-        //   document.body.dispatchEvent(new CustomEvent(`handshakeReady`));
-        // }, 1000);
-      })
       
     });
     this.enableReceiveDataMessages = this.enableReceiveDataMessages.bind(this);
@@ -128,6 +132,7 @@ class AwsChimeAdapter extends NafInterface {
       document.body.addEventListener('localEntitiesDeleted', ()=>{
         this.parseReceivedEntities(entities);
         this.enableReceiveDataMessages();
+        this.isSendUMEnabled = true;
       }, {once:true});
       document.body.dispatchEvent(new CustomEvent(`handshakeEntitiesReceived`));
       
@@ -141,6 +146,9 @@ class AwsChimeAdapter extends NafInterface {
   sendDataGuaranteed(to, type, data) {this.sendData(to, type, data)};
   sendData(to, type, data) {
     // console.log('1234 sendData', to, type, data);
+    if(type === 'um' && !this.isSendUMEnabled){
+      return
+    }
 
     const packet = {
       from: this.myId,
@@ -172,6 +180,10 @@ class AwsChimeAdapter extends NafInterface {
   }
   broadcastDataGuaranteed(type, data){this.broadcastData(type, data)}
   broadcastData(type, data) { 
+    if(type === 'um' && !this.isSendUMEnabled){
+      return
+    }
+
     const packet = {
       from: this.myId,
       type,
@@ -589,6 +601,7 @@ parseReceivedEntities (entities) {
     this.roster = {};
     this.participantList = {}; 
     this.isAccepted = false;
+    this.isSendUMEnabled = false;
     this.audioVideoDidStartVariable = false;
     if(this.closedListener){
       this.closedListener(this.myAttendeeId);
