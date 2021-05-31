@@ -58,7 +58,7 @@ io.on("connection", socket => {
     console.log('1234  - um broadcast', payload, curRoom, payload.data.d);
     // update corresponding entity
     payload.data.d.forEach( (currentEntity) => {
-      if(rooms[curRoom].entities && rooms[curRoom].entities[currentEntity.networkId]){
+      if(rooms[curRoom] && rooms[curRoom].entities[currentEntity.networkId]){
         Object.entries(currentEntity.components).forEach((keyAndVal)=>{
           rooms[curRoom].entities[currentEntity.networkId].components[keyAndVal[0]] = keyAndVal[1];
         })
@@ -149,9 +149,9 @@ io.on("connection", socket => {
     console.log(`${socket.id} joined room ${room}`);
     socket.join(room);
 
-    socket.emit("connectSuccess", { joinedTime });
     const occupants = rooms[room].occupants;
     io.in(curRoom).emit("occupantsChanged", { occupants });
+    socket.emit("joinRoomSuccess", { joinedTime });
   });
 
 
