@@ -345,31 +345,19 @@ parseReceivedEntities (entities) {
             this.logsEnabled && console.log(new Date().toISOString(),  '1234 WebSocketClosed, disconnecting', this.isDisconnecting);
             if(!this.isDisconnecting){
               NAF.log.error(e);
-              if(e.closeCode === 1006){
-                // meeting ended while this client was still connected
-                // Set flag to avoid leave
-                this.shouldLeaveWhenDisconnect = false;
-                // call naf disconnection which will clean naf stuff
-                // and then call this adapter's disconnect
-                // where we will avoid the leave due to previous flag
-                NAF.connection.disconnect();
-              } else {
-                // meeting left unexpectedly, with f5 or close tab
-                // we don't need to call naf, but we need to disconnect from chime
-                await this.disconnect();
-              }
-              // TODO anything after this does not work
-              // NAF.isDisconnecting = null;
             }
             break;
           case awsChime.SignalingClientEventType.WebSocketError:
-          case awsChime.SignalingClientEventType.WebSocketFailed:
-              NAF.log.error(e);
-              await this.disconnect();
+            this.logsEnabled && console.log(new Date().toISOString(),  '1234 WebSocketError');
+            NAF.log.error(e);
             break;
-            case awsChime.SignalingClientEventType.WebSocketSkippedMessage:
-              NAF.log.error(e);
-              this.logsEnabled && console.log(new Date().toISOString(),  '1234 WebSocketSkipped');
+          case awsChime.SignalingClientEventType.WebSocketFailed:
+            this.logsEnabled && console.log(new Date().toISOString(),  '1234 WebSocketFailed');
+            NAF.log.error(e);
+            break;
+          case awsChime.SignalingClientEventType.WebSocketSkippedMessage:
+            NAF.log.error(e);
+            this.logsEnabled && console.log(new Date().toISOString(),  '1234 WebSocketSkipped');
             break;
           default:
             // this.logsEnabled && console.log(new Date().toISOString(),  '1234 default', e.type);
