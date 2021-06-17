@@ -564,7 +564,9 @@ parseReceivedEntities (entities) {
     }
     try {
       console.log('1234 EMITTING DISCONNECT for socket');
-      this.socket.disconnect();
+      if(this.socket){
+        this.socket.disconnect();
+      }
     } catch (error) {
       console.log('1234 error while disconnecting socket', error);
     }
