@@ -555,11 +555,19 @@ parseReceivedEntities (entities) {
   getMediaStream(clientId) { return Promise.reject("Interface method not implemented: getMediaStream")}
   
   async disconnect() {
-    this.isDisconnecting = true
-    this.logsEnabled && console.log(new Date().toISOString(),  '1234  - AwsChimeAdapter  - disconnect  - disconnect');
-    await this.leaveMeeting(this.myAttendeeId);
-    console.log('1234 EMITTING DISCONNECT for socket');
-    this.socket.disconnect();
+    try {
+      this.isDisconnecting = true
+      this.logsEnabled && console.log(new Date().toISOString(),  '1234  - AwsChimeAdapter  - disconnect  - disconnect');
+      await this.leaveMeeting(this.myAttendeeId);
+    } catch (error) {
+      console.log('1234 error while leaving meeting', error);
+    }
+    try {
+      console.log('1234 EMITTING DISCONNECT for socket');
+      this.socket.disconnect();
+    } catch (error) {
+      console.log('1234 error while disconnecting socket', error);
+    }
     await this.close(); 
   }
 
