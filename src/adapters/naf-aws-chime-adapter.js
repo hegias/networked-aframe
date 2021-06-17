@@ -570,7 +570,11 @@ parseReceivedEntities (entities) {
     } catch (error) {
       console.log('1234 error while disconnecting socket', error);
     }
-    await this.close(); 
+    try {
+      await this.close(); 
+    } catch (error) {
+      console.log('1234 error while closing', error);
+    }
   }
 
   async leaveMeeting(leavingAttendeeId) {
@@ -591,7 +595,9 @@ parseReceivedEntities (entities) {
       this.audioVideo.stop();
     }
     // manual release of audio track because chime *****
-    this.chosenAudioTrack.enabled = false;
+    if(this.chosenAudioTrack) {
+      this.chosenAudioTrack.enabled = false;
+    }
     this.chosenAudioTrack = null;
     this.audioVideo = null;
     this.listAudioInputDevices = null;
