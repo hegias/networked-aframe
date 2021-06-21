@@ -607,9 +607,9 @@ parseReceivedEntities (entities) {
     this.isAccepted = false;
     this.isSendUMEnabled = false;
     this.audioVideoDidStartVariable = false;
-    if(this.closedListener){
-      this.closedListener(this.myAttendeeId);
-    }
+    // if(this.closedListener){
+    //   this.closedListener(this.myAttendeeId);
+    // }
     document.body.removeEventListener('keydown', this.onKeyDown);
     document.body.removeEventListener('isAccepted', this.onIsAccepted);
   }
