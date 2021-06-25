@@ -288,6 +288,9 @@ parseReceivedEntities (entities) {
         this.joinInfo = this.json.JoinInfo;
         this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> connect -> joinInfo', this.joinInfo);
         this.configuration = new this.awsChime.MeetingSessionConfiguration(this.joinInfo.Meeting, this.joinInfo.Attendee);
+        this.configuration.connectionHealthPolicyConfiguration.missedPongsLowerThreshold  = 4;
+        this.configuration.connectionHealthPolicyConfiguration.missedPongsUpperThreshold   = 10;
+
         this.logsEnabled && console.log(new Date().toISOString(),  '1234: AwsChimeAdapter -> connect -> configuration', this.configuration);
         this.myAttendeeId = this.joinInfo.Attendee.Attendee.AttendeeId;
         this.externalUserId = this.joinInfo.Attendee.Attendee.ExternalUserId;
