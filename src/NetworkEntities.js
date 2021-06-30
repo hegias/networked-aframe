@@ -99,7 +99,7 @@ class NetworkEntities {
 
     var parentNotCreatedYet = parent && !this.hasEntity(parent);
     if (parentNotCreatedYet) {
-      console.log('1234 receiveFirstUpdateFromEntity -> PARENT NOT CREATED YET. parent is', parent, 'entityData is', entityData)
+      // console.log('1234 receiveFirstUpdateFromEntity -> PARENT NOT CREATED YET. parent is', parent, 'entityData is', entityData)
       this.childCache.addChild(parent, entityData);
     } else {
       var remoteEntity = this.createRemoteEntity(entityData);
@@ -148,7 +148,7 @@ class NetworkEntities {
   }
 
   completeSync(targetClientId, isFirstSync, force) {
-    console.log('1234  - NetworkEntities  - completeSync ', 'target client id', targetClientId);
+    // console.log('1234  - NetworkEntities  - completeSync ', 'target client id', targetClientId);
     // for (var id in this.entities) {
     //   if (this.entities[id]) {
     //     this.entities[id].components.networked.syncAll(targetClientId, isFirstSync, force);
@@ -165,12 +165,12 @@ class NetworkEntities {
   removeRemoteEntity(toClient, dataType, data, source) {
     if (NAF.options.syncSource && source !== NAF.options.syncSource) return;
     var id = data.networkId;
-    console.log('1234  - NetworkEntities  - removeRemoteEntity', id);
+    // console.log('1234  - NetworkEntities  - removeRemoteEntity', id);
     return this.removeEntity(id);
   }
 
   removeEntitiesOfClient(clientId) {
-    console.log('1234  - NetworkEntities  - removeEntitiesOfClient  - clientId', clientId);
+    // console.log('1234  - NetworkEntities  - removeEntitiesOfClient  - clientId', clientId);
     var entityList = [];
     for (var id in this.entities) {
       var entityCreator = NAF.utils.getCreator(this.entities[id]);
@@ -189,7 +189,7 @@ class NetworkEntities {
           } else {
             // non è persistent
             // è l'avatar e tutto ciò che va eliminato
-            console.log('1234  - NetworkEntities  - removeEntitiesOfClient  - entityOwner ', entityOwner,'=== NAF.clientId', clientId);
+            // console.log('1234  - NetworkEntities  - removeEntitiesOfClient  - entityOwner ', entityOwner,'=== NAF.clientId', clientId);
             var entity = this.removeEntity(id);
             entityList.push(entity);
           }
@@ -215,7 +215,7 @@ class NetworkEntities {
       var entity = this.entities[id];
       this.forgetEntity(id);
       entity.parentNode.removeChild(entity);
-      console.log('1234  - NetworkEntities  - removeEntity  - id', id);
+      // console.log('1234  - NetworkEntities  - removeEntity  - id', id);
       return entity;
     } else {
       NAF.log.error("Tried to remove entity I don't have.");

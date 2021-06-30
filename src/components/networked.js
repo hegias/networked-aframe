@@ -145,7 +145,7 @@ AFRAME.registerComponent('networked', {
     }
 
     document.body.dispatchEvent(this.entityCreatedEvent());
-    console.log('1234 EMIT ', `entityCreated-${this.el.id}`, this.el)
+    // console.log('1234 EMIT ', `entityCreated-${this.el.id}`, this.el)
     document.body.dispatchEvent(new CustomEvent(`entityCreated-${this.el.id}`, {detail: {el: this.el}}));
     this.el.dispatchEvent(new CustomEvent('instantiated', {detail: {el: this.el}}));
     this.el.sceneEl.systems.networked.register(this);
@@ -274,7 +274,7 @@ AFRAME.registerComponent('networked', {
   /* Sending updates */
 
   syncAll: function(targetClientId, isFirstSync, force=false, index) {
-    console.log('1234 networked - syncAll', targetClientId, 'index', index, 'this is', this)
+    // console.log('1234 networked - syncAll', targetClientId, 'index', index, 'this is', this)
     if (!this.canSync() && !force) {
       return;
     }
@@ -425,7 +425,7 @@ AFRAME.registerComponent('networked', {
 
     if (this.data.owner !== entityData.owner) {
       //HACK - useful?
-      console.log('AFRAME NETWORKED networkupdate. i am', NAF.clientId, 'from', this.data.owner, ' to ', entityData.owner, this.el.getAttribute('name'));
+      // console.log('AFRAME NETWORKED networkupdate. i am', NAF.clientId, 'from', this.data.owner, ' to ', entityData.owner, this.el.getAttribute('name'));
       //END HACK 
       var wasMine = this.isMine();
       this.lastOwnerTime = entityData.lastOwnerTime;

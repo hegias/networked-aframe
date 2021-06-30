@@ -89,19 +89,19 @@ class AwsChimeAdapter extends NafInterface {
       NAF.log.write("User connected", socket.id);
       this.myId = socket.id;
       socket.on("joinRoomSuccess", (response)=>{
-        console.log('1234 joinRoomSuccess RESPONSE', response)
+        this.logsEnabled && console.log('1234 joinRoomSuccess RESPONSE', response)
 
         socket.emit('handshake', (response)=>{
-          console.log('1234 RESPONSE', response)
+          this.logsEnabled && console.log('1234 RESPONSE', response)
           document.body.addEventListener('handshakeReady', ()=>{
-            console.log('1234 triggering handshakeReady', response)
+            this.logsEnabled && console.log('1234 triggering handshakeReady', response)
             // send number of total entities
             const packet = {
               from: this.myId,
               data: {entitiesCount: Object.keys(NAF.connection.entities.entities).length},
             };
             socket.emit('entitiesCount', packet, (response)=>{
-              console.log('1234 entitiesCount', response)
+              this.logsEnabled && console.log('1234 entitiesCount', response)
               // BE will keep trace of entities received per each client
               // connectSuccess sends u messages, we will implement acks there
               // such that client resends u if BE did not acknowledged it
@@ -127,7 +127,7 @@ class AwsChimeAdapter extends NafInterface {
     this.enableReceiveDataMessages = this.enableReceiveDataMessages.bind(this);
     
     socket.on("entities", (entities)=>{
-      console.log('1234 received entities', entities)
+      this.logsEnabled && console.log('1234 received entities', entities)
       
       document.body.addEventListener('localEntitiesDeleted', ()=>{
         this.parseReceivedEntities(entities);
@@ -163,11 +163,11 @@ class AwsChimeAdapter extends NafInterface {
         const timedCallback = this.withTimer(
           //onSuccess
           (response)=>{
-            console.log('1234  - acked ', type, 'OK', response);
+            this.logsEnabled && console.log('1234  - acked ', type, 'OK', response);
           },
           //onTimeout
           ()=> {
-            console.log('1234  - ', type, 'not acked yet. resending', packet);
+            this.logsEnabled && console.log('1234  - ', type, 'not acked yet. resending', packet);
             this.socket.emit(type, packet, timedCallback );
           }, 5000)
         this.socket.emit(type, packet, timedCallback);
@@ -196,11 +196,11 @@ class AwsChimeAdapter extends NafInterface {
         const timedCallback = this.withTimer(
           //onSuccess
           (response)=>{
-            console.log('1234  - acked ', type, 'OK', response);
+            this.logsEnabled && console.log('1234  - acked ', type, 'OK', response);
           },
           //onTimeout
           ()=> {
-            console.log('1234  - ', type, 'not acked yet. resending', packet);
+            this.logsEnabled && console.log('1234  - ', type, 'not acked yet. resending', packet);
             this.socket.emit(type, packet, timedCallback );
           }, 5000)
         this.socket.emit(type, packet, timedCallback);
@@ -229,15 +229,15 @@ enableReceiveDataMessages(){
 }
 
 parseReceivedEntities (entities) {
-  console.log('1234  - parseReceivedEntities  - entities', entities);
+  this.logsEnabled && console.log('1234  - parseReceivedEntities  - entities', entities);
   Object.keys(entities).forEach(entity => {
-    console.log('1234  - parseReceivedEntities  - entity', entities[entity]);
+    this.logsEnabled && console.log('1234  - parseReceivedEntities  - entity', entities[entity]);
     if(
       NAF.connection.entities.hasEntity(entities[entity].networkId)
       && NAF.utils.isMine(NAF.connection.entities.entities[entities[entity].networkId])){
         return
       }
-    console.log('1234  - parseReceivedEntities  - calling messageListener for', entities[entity].networkId);
+      this.logsEnabled && console.log('1234  - parseReceivedEntities  - calling messageListener for', entities[entity].networkId);
     this.messageListener(undefined, 'u', entities[entity]);
   });
 }
@@ -374,8 +374,8 @@ parseReceivedEntities (entities) {
 
     // implement onError and onClose socket's callbacks
     this.websocket = this.audioVideo.audioVideoController._webSocketAdapter;
-    this.websocket.connection.onerror = (ev) => {console.log('1234: AwsChimeAdapter -> webSocket onError', ev)}
-    this.websocket.connection.onclose = (ev) => {console.log('1234: AwsChimeAdapter -> webSocket onClose', ev)}
+    this.websocket.connection.onerror = (ev) => {this.logsEnabled && console.log('1234: AwsChimeAdapter -> webSocket onError', ev)}
+    this.websocket.connection.onclose = (ev) => {this.logsEnabled && console.log('1234: AwsChimeAdapter -> webSocket onClose', ev)}
   }
 
   async join() {
@@ -400,14 +400,14 @@ parseReceivedEntities (entities) {
     this.chosenAudioTrack = this.chosenAudioInput.getAudioTracks()[0]
     this.chosenAudioInputId = this.chosenAudioTrack.getSettings().deviceId;
     if(this.chosenAudioInput.getAudioTracks().length > 1){
-      console.log('1234 warning: stream has more than one audio track', this.chosenAudioInput, this.chosenAudioInput.getAudioTracks());
+      this.logsEnabled && console.log('1234 warning: stream has more than one audio track', this.chosenAudioInput, this.chosenAudioInput.getAudioTracks());
     }
     // listAudioInputDevices calls deviceLabelTrigger first to populate the device labels.
     // but we have populated them manually with getUserMedia so it wont trigger.
     // we also kept trace of what the user chose.
     this.listAudioInputDevices = await this.audioVideo.listAudioInputDevices();
     if(!this.chosenAudioInput || !this.chosenAudioInputId){
-      console.log('1234 no chosenAudioInput or id')
+      this.logsEnabled && console.log('1234 no chosenAudioInput or id')
     }
     this.chosenAudioInputIndex;
     // we need to match the chosen audioInput from browser's permission UI
@@ -563,20 +563,20 @@ parseReceivedEntities (entities) {
       this.logsEnabled && console.log(new Date().toISOString(),  '1234  - AwsChimeAdapter  - disconnect  - disconnect');
       await this.leaveMeeting(this.myAttendeeId);
     } catch (error) {
-      console.log('1234 error while leaving meeting', error);
+      this.logsEnabled && console.log('1234 error while leaving meeting', error);
     }
     try {
-      console.log('1234 EMITTING DISCONNECT for socket');
+      this.logsEnabled && console.log('1234 EMITTING DISCONNECT for socket');
       if(this.socket){
         this.socket.disconnect();
       }
     } catch (error) {
-      console.log('1234 error while disconnecting socket', error);
+      this.logsEnabled && console.log('1234 error while disconnecting socket', error);
     }
     try {
       await this.close(); 
     } catch (error) {
-      console.log('1234 error while closing', error);
+      this.logsEnabled && console.log('1234 error while closing', error);
     }
   }
 
